@@ -1020,6 +1020,32 @@ def huno_json_total_reward(request):
 
 @csrf_exempt
 @require_http_methods(['POST'])
+def huno_json_total_reward_all_records(request):
+    if not utils.param_check(request.POST,
+                             ['campaign_id', 'email', 'data_source_id', 'from_timestamp', 'till_timestamp']):
+        return JsonResponse(data={'success': False, 'err_msg': 'huno, check your param types'})
+
+    db_campaign = db.get_campaign(campaign_id=int(request.POST['campaign_id']))
+    db_participant = db.get_user(email=request.POST['email'])
+    db_data_source = db.get_data_source(data_source_id=int(request.POST['data_source_id']))
+    from_ts = int(request.POST['from_timestamp'])
+    till_ts = int(request.POST['till_timestamp'])
+
+    if None in [db_campaign, db_participant, db_data_source, from_ts, till_ts]:
+        return JsonResponse(data={'success': False, 'err_msg': 'huno, values for some params are invalid, pls recheck'})
+
+    res = {'success': True, 'total_rewards': {}}
+    for reward_record in db.get_filtered_data_records(db_campaign=db_campaign, from_timestamp=from_ts,
+                                                     till_timestamp=till_ts, db_user=db_participant,
+                                                     db_data_source=db_data_source):
+        cells = str(bytes(reward_record.value), encoding='utf8').split(' ')
+        res['total_rewards'][reward_record.timestamp] = int(cells[1])
+
+    return JsonResponse(data=res)
+
+
+@csrf_exempt
+@require_http_methods(['POST'])
 def huno_json_participation_days(request):
     if not utils.param_check(request.POST,
                              ['campaign_id', 'email', 'data_source_id', 'from_timestamp', 'till_timestamp']):
