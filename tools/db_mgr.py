@@ -314,12 +314,12 @@ def get_filtered_data_records(db_user, db_campaign, db_data_source, from_timesta
 def dump_data(db_campaign, db_user, db_data_source=None):
     file_path = utils.get_download_file_path(f'cmp{db_campaign.id}_usr{db_user.id}.bin.csv')
     # session.execute(f'copy "data"."cmp{db_campaign.id}_usr{db_user.id}" to %s with header = true;', (file_path,))
-    # if db_data_source:
-    #     subprocess.run(['cqlsh', '-e', f"copy data.cmp{db_campaign.id}_usr{db_user.id} to \'{file_path}\' with header = true;"], stdout=PIPE, stderr=PIPE, shell=True)
-    # else:
-    #     subprocess.run(['cqlsh', '-e', f"copy data.cmp{db_campaign.id}_usr{db_user.id} to \'{file_path}\' with header = true;"], stdout=PIPE, stderr=PIPE, shell=True)
-    subprocess.run(['cqlsh', '-e', f"copy data.cmp{db_campaign.id}_usr{db_user.id} to \'{file_path}\' with header = true;"], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    # os.system(f'cqlsh 127.0.0.1 -e "copy data.cmp{db_campaign.id}_usr{db_user.id} to \'{file_path}\' with HEADER = true"')
+    if db_data_source:
+        subprocess.run([settings.cqlsh_path, '-e', f"copy data.cmp{db_campaign.id}_usr{db_user.id} to \'{file_path}\' with header = true;"], stdout=PIPE, stderr=PIPE, shell=True)
+    else:
+        subprocess.run([settings.cqlsh_path, '-e', f"copy data.cmp{db_campaign.id}_usr{db_user.id} to \'{file_path}\' with header = true;"], stdout=PIPE, stderr=PIPE, shell=True)
+    # subprocess.run([settings.cqlsh_path, '-e', f"copy data.cmp{db_campaign.id}_usr{db_user.id} to \'{file_path}\' with header = true;"], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    # os.system(f'{settings.cqlsh_path} 127.0.0.1 -e "copy data.cmp{db_campaign.id}_usr{db_user.id} to \'{file_path}\' with HEADER = true"')
     return file_path
 
 
