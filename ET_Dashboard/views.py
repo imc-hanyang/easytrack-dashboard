@@ -1069,6 +1069,9 @@ def huno_json_participation_days(request):
     else:
         participation_days = 'N/A'
 
+    if participation_days < 0:
+        participation_days = 365 + participation_days
+
     res = {'success': True, 'participation_days': participation_days}
     return JsonResponse(data=res)
 
