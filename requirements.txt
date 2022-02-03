@@ -2,7 +2,7 @@ cassandra-driver==3.25.0
 Django==2.2.26
 grpcio==1.38.0
 grpcio-tools==1.27.2
-Pillow==8.0.1
+Pillow==9.0.0
 plotly==4.12.0
 protobuf==3.11.3
 python-dateutil==2.8.1
