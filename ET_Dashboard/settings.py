@@ -31,6 +31,7 @@ SESSION_COOKIE_SECURE = False
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
+    '175.106.98.214',
 
     '165.246.42.173',
     'etdb1.myvnc.com',
