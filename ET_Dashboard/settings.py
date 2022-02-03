@@ -38,6 +38,7 @@ ALLOWED_HOSTS = [
     '165.246.42.173',
     'etdb1.myvnc.com',
 
+    '10.10.2.6',
     '175.106.98.214',
     'etdb2.myvnc.com',
 ]
