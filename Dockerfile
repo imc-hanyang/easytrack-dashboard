@@ -14,6 +14,7 @@ WORKDIR /home/et_dashboard
 # install dependencies
 RUN pip install -r requirements.txt
 RUN pip install django-extensions Werkzeug
+RUN pip install pyOpenSSL
 RUN python manage.py makemigrations
 RUN python manage.py migrate
 
