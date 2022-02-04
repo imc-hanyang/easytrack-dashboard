@@ -57,8 +57,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.humanize',
     'social_django',
+    "django_extensions",
     'ET_Dashboard',
 ]
+
+RUNSERVERPLUS_SERVER_ADDRESS_PORT = '0.0.0.0:80'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

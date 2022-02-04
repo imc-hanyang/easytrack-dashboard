@@ -13,6 +13,7 @@ WORKDIR /home/et_dashboard
 
 # install dependencies
 RUN pip install -r requirements.txt
+RUN pip install django-extensions Werkzeug
 RUN python manage.py makemigrations
 RUN python manage.py migrate
 
@@ -20,4 +21,5 @@ RUN python manage.py migrate
 EXPOSE 80 443
 
 # run web server
-CMD ["python", "manage.py", "runserver", "0:80"]
+ CMD ["python", "manage.py", "runserver_plus", "--cert-file", "cert.pem", "--key-file", "key.pem"]
+# CMD ["python", "manage.py", "runserver", "0:80"]
