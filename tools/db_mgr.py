@@ -10,7 +10,7 @@ import json
 # region common part
 def get_cassandra_session():
     if settings.cassandra_session is None:
-        settings.cassandra_cluster = Cluster(contact_points=[os.environ['CASSANDRA_HOST']], executor_threads=10, connect_timeout=300)
+        settings.cassandra_cluster = Cluster(contact_points=os.environ['ENV CASSANDRA_NODES'].split(','), executor_threads=10, connect_timeout=300)
         settings.cassandra_session = settings.cassandra_cluster.connect()
         print('cassandra session initialized', settings.cassandra_session)
     return settings.cassandra_session
