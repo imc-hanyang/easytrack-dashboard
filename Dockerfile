@@ -21,5 +21,5 @@ RUN python manage.py migrate
 EXPOSE 80 443
 
 # run web server
- CMD ["python", "manage.py", "runserver_plus", "--cert-file", "cert.pem", "--key-file", "key.pem"]
+CMD ["python", "manage.py", "runserver_plus", "--cert-file", "cert.pem", "--key-file", "key.pem", "0:443"]
 # CMD ["python", "manage.py", "runserver", "0:80"]
