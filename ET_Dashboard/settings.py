@@ -26,17 +26,24 @@ SECRET_KEY = 'cnbtigdbatfgl5iw89bh*$-y4j@g!c)qtuwmmi=ld!d^-he3o)'
 DEBUG = True
 
 ALLOWED_HOSTS = [
+    # localhost
     'localhost',
     '127.0.0.1',
 
+    # inha addresses
     '165.246.21.202',
     'etdb.myvnc.com',
-
     '165.246.42.173',
     'etdb1.myvnc.com',
-
+    
+    # docker-compose vm address
     '10.10.2.6',
     '175.106.98.214',
+
+    # k8s ingress addresses
+    'ingress-ngi-ingress-ngin-402cb-10054646-919e7b81641f.kr.lb.naverncp.com',
+
+    # hy-dhc dns
     'etdb2.myvnc.com',
 ]
 
