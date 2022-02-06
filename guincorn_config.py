@@ -1,5 +1,5 @@
 command = 'python -m gunicorn'
 bind = '0.0.0.0:443'
-certfile = 'cert.pem'
-keyfile = 'key.pem'
+certfile = 'fullchain.pem'
+keyfile = 'privkey.pem'
 workers = 5
