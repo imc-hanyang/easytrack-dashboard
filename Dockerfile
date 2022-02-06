@@ -22,4 +22,4 @@ EXPOSE 443
 
 # run web server
 # CMD ["python", "manage.py", "runserver", "0:80"]
-CMD ["gunicorn", "-c", "guincorn_config.py", "ET_Dashboard.wsgi"]
+CMD ["gunicorn", "-c", "gunicorn_config.py", "ET_Dashboard.wsgi"]
