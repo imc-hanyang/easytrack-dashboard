@@ -40,8 +40,11 @@ ALLOWED_HOSTS = [
     'etdb2.myvnc.com',
 ]
 
-hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
-INTERNAL_IPS = [ip[:-1] + '1' for ip in ips] + ['127.0.0.1', 'localhost']
+try:
+    hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
+    INTERNAL_IPS = [ip[:-1] + '1' for ip in ips] + ['127.0.0.1', 'localhost']
+except socket.herror:
+    pass
 
 # Application definition
 INSTALLED_APPS = [
@@ -54,7 +57,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.humanize',
     'social_django',
-    "django_extensions",
     'ET_Dashboard',
 ]
 

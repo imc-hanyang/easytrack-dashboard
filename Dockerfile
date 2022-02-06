@@ -12,14 +12,14 @@ WORKDIR /home/et_dashboard
 
 # install dependencies
 RUN pip install -r requirements.txt
-RUN pip install django-extensions Werkzeug
+RUN pip install gunicorn
 RUN pip install pyOpenSSL
 RUN python manage.py makemigrations
 RUN python manage.py migrate
 
 # open ports
-EXPOSE 80
+EXPOSE 443
 
 # run web server
-CMD ["python", "manage.py", "runserver_plus", "--cert-file", "cert.pem", "--key-file", "key.pem"]
 # CMD ["python", "manage.py", "runserver", "0:80"]
+CMD ["gunicorn", "-c", "guincorn_config.py", "ET_Dashboard.wsgi"]
