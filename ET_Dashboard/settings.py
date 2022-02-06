@@ -25,6 +25,8 @@ SECRET_KEY = 'cnbtigdbatfgl5iw89bh*$-y4j@g!c)qtuwmmi=ld!d^-he3o)'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+
 ALLOWED_HOSTS = [
     # localhost
     'localhost',
@@ -134,7 +136,8 @@ STATICFILES_DIRS = (
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
-    'social_core.backends.google.GoogleOpenId',
+    #'social_core.backends.google.GoogleOpenId',
+    'social_core.backends.google_openidconnect.GoogleOpenIdConnect',
     'social_core.backends.google.GoogleOAuth2',
 )
 
