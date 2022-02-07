@@ -23,6 +23,8 @@ from django.http import StreamingHttpResponse
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.http import JsonResponse
+from google.auth.transport import requests as oauth_requests
+from google.oauth2 import id_token as oauth_id_token
 
 # EasyTrack
 from ET_Dashboard.models import EnhancedDataSource
@@ -34,10 +36,58 @@ def handle_google_verification(request):
     return render(request=request, template_name='google43e44b3701ba10c8.html')
 
 
+def email_login(request, email, first_name, last_name):
+    db_user = db.get_user(email=email)
+    if db_user is None:
+        print('new user : ', end='')
+        session_key = utils.md5(value=f'{email}{utils.now_us()}')
+        db_user = db.create_user(name=email, email=email, session_key=session_key)
+        if db_user is None:
+            dj_logout(request=request)
+        else:
+            if dj_User.objects.filter(email=email).exists():
+                dj_user = dj_User.objects.get(email=email)
+            else:
+                dj_user = dj_User.objects.create_user(username=email, email=email, password=email)
+            if dj_authenticate(username=email, password=email):
+                dj_login(request=request, user=dj_user, backend='django.contrib.auth.backends.ModelBackend')
+                return True
+            else:
+                return False
+    else:
+        if dj_User.objects.filter(email=email).exists():
+            dj_user = dj_User.objects.get(email=email)
+        else:
+            dj_User.objects.create_user()
+            dj_user = dj_User.objects.create_user(username=email, email=email, password=email)
+            dj_user.first_name = first_name
+            dj_user.last_name = last_name
+            dj_user.save()
+        if dj_authenticate(username=email, password=email):
+            dj_login(request=request, user=dj_user, backend='django.contrib.auth.backends.ModelBackend')
+            return True
+        else:
+            return False
+
+
 @require_http_methods(['GET', 'POST'])
 def handle_login_api(request):
-    if not request.user.is_authenticated and 'openId' in request.GET:
-        pass
+    if not request.user.is_authenticated and 'idToken' in request.GET:
+        google_id_details = oauth_id_token.verify_oauth2_token(id_token=request.GET['idToken'], request=oauth_requests.Request())
+        if google_id_details['iss'] in ['accounts.google.com', 'https://accounts.google.com']:
+            logged_in = email_login(
+                request=request,
+                email=google_id_details['email'],
+                first_name=google_id_details['name'],
+                last_name=''
+            )
+            if logged_in:
+                return redirect(to='campaigns-list')
+            else:
+                return redirect(to='login')
+        else:
+            print('google auth failure, wrong issuer')
+            return redirect(to='login')
     if request.user.is_authenticated:
         db_user = db.get_user(email=request.user.email)
         if db_user is None:
@@ -60,37 +110,16 @@ def handle_login_api(request):
 @require_http_methods(['GET'])
 def handle_development_login_api(request):
     dev_email = 'dev@easytrack.com'
-    db_user = db.get_user(email=request.user.email if request.user.is_authenticated else dev_email)
-    if db_user is None:
-        print('new user : ', end='')
-        session_key = utils.md5(value=f'{dev_email}{utils.now_us()}')
-        db_user = db.create_user(name=dev_email, email=dev_email, session_key=session_key)
-        if db_user is None:
-            dj_logout(request=request)
-        else:
-            if dj_User.objects.filter(email=dev_email).exists():
-                dj_user = dj_User.objects.get(email=dev_email)
-            else:
-                dj_user = dj_User.objects.create_user(username=dev_email, email=dev_email, password=dev_email)
-            if dj_authenticate(username=dev_email, password=dev_email):
-                dj_login(request=request, user=dj_user, backend='django.contrib.auth.backends.ModelBackend')
-                return redirect(to='campaigns-list')
-            else:
-                return redirect(to='login')
+    logged_in = email_login(
+        request=request,
+        email=request.user.email if request.user.is_authenticated else dev_email,
+        first_name='Test',
+        last_name='User'
+    )
+    if logged_in:
+        return redirect(to='campaigns-list')
     else:
-        if dj_User.objects.filter(email=dev_email).exists():
-            dj_user = dj_User.objects.get(email=dev_email)
-        else:
-            dj_User.objects.create_user()
-            dj_user = dj_User.objects.create_user(username=dev_email, email=dev_email, password=dev_email)
-            dj_user.first_name = 'ET'
-            dj_user.last_name = 'Development'
-            dj_user.save()
-        if dj_authenticate(username=dev_email, password=dev_email):
-            dj_login(request=request, user=dj_user, backend='django.contrib.auth.backends.ModelBackend')
-            return redirect(to='campaigns-list')
-        else:
-            return redirect(to='login')
+        return redirect(to='login')
 
 
 @login_required
