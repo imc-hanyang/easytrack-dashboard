@@ -28,12 +28,14 @@
         let gAuth; // Google Auth object.
 
         $(document).init(function () {
-            <!--gapi.load('client', {
+            /*
+            gapi.load('client', {
                 callback: () => initGoogleApiClient(),
                 onerror: (msg) => console.log(msg)
-            });-->
+            });
+            $('#loginButton').click(gAuth.signIn());
+            */
 
-            <!--$('#loginButton').click(gAuth.signIn());-->
             $('#loginButton').click(function () {
                 console.log('loading auth2');
                 gapi.load('auth2', function () {
