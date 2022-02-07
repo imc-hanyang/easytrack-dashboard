@@ -51,7 +51,7 @@
             if (isSignedIn) {
                 // todo redirect here
 
-                let user = GoogleAuth.currentUser;
+                let user = gAuth.currentUser;
                 console.log(`user: ${user}`);
 
                 let resp = user.getAuthResponse();
