@@ -8,7 +8,7 @@
             <th class="participants_column">Participants</th>
             <th class="actions_column">Actions</th>
         </tr>
-        {% load humanize staticfiles %}
+        {% load humanize static %}
         {% for campaign in my_campaigns %}
             <tr>
                 <td class="id_column" data-href="{% url 'participants-list' %}?id={{ campaign.id }}">{{ campaign.id|truncatechars:40 }}</td>

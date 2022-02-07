@@ -16,7 +16,7 @@
             <th class="email_column">Email</th>
             <th class="action_column">Manage (action)</th>
         </tr>
-        {% load humanize staticfiles %}
+        {% load humanize static %}
         {% for researcher in researchers %}
             <tr>
                 <td class="name_column" title="{{ researcher.name }}">{{ researcher.name }}</td>
