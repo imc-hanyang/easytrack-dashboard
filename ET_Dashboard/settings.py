@@ -41,7 +41,7 @@ ALLOWED_HOSTS = [
     '175.106.98.214',
 
     # k8s ingress addresses
-    'default-et-dashboard-ser-59be2-10061902-4dfa48e87ed6.kr.lb.naverncp.com',
+    'ingress-ngi-ingress-ngin-402cb-10054646-919e7b81641f.kr.lb.naverncp.com',
 
     # hy-dhc dns
     'etdb2.myvnc.com',
