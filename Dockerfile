@@ -13,12 +13,12 @@ WORKDIR /home/et_dashboard
 # install dependencies
 RUN pip install -r requirements.txt
 RUN pip install gunicorn
-RUN pip install pyOpenSSL
+# RUN pip install pyOpenSSL
 RUN python manage.py makemigrations
 RUN python manage.py migrate
 
 # open ports
-EXPOSE 443
+EXPOSE 80
 
 # run web server
 # CMD ["python", "manage.py", "runserver", "0:80"]
