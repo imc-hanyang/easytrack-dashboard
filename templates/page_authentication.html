@@ -1,7 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/css/materialize.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/js/materialize.min.js"></script>
     <div class="col s12 m6 offset-m3 center-align">
-        <a class="oauth-container btn darken-4 white black-text" href="{% url 'social:begin' 'google-oauth2' %}{% if next %}?next={{ next }}{% endif %}" style="text-transform:none">
+        <a id="loginButton" class="oauth-container btn darken-4 white black-text">
             <div class="left">
                 <img width="20px" style="margin-top:7px; margin-right:8px" alt="Google sign-in"
                      src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png"/>
@@ -21,11 +23,56 @@
             </a>
         </div>
     {% endif %}
-    <!-- Compiled and minified CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/css/materialize.min.css">
 
-    <!-- Compiled and minified JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/js/materialize.min.js"></script>
+    <script>
+        let GoogleAuth; // Google Auth object.
+
+        $(document).init(function () {
+            gapi.load('client', {
+                callback: () => initGoogleApiClient(),
+                onerror: (msg) => console.log(msg)
+            });
+            $('#loginButton').click(function () {
+                GoogleAuth.signIn();
+            });
+        });
+
+        let isAuthorized;
+        let currentApiRequest;
+
+        function initGoogleApiClient() {
+            console.log('initGoogleApiClient');
+            gapi.client.init({
+                'apiKey': 'AIzaSyC0RSyYQIVC0palvzQQ5YUEW6g1taUT2VY',
+                'clientId': '79296265957-khvficocpqmhajv3c5obiljo2k95jqt3.apps.googleusercontent.com',
+                'scope': 'https://www.googleapis.com/auth/drive.metadata.readonly',
+                'discoveryDocs': ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+            }).then(function () {
+                GoogleAuth = gapi.auth2.getAuthInstance();
+                GoogleAuth.isSignedIn.listen(updateSigninStatus);
+            });
+        }
+
+        function updateSigninStatus(isSignedIn) {
+            console.log('updateSigninStatus');
+            if (isSignedIn) {
+                isAuthorized = true;
+                if (currentApiRequest)
+                    sendAuthorizedApiRequest(currentApiRequest);
+            } else {
+                isAuthorized = false;
+            }
+        }
+
+        function sendAuthorizedApiRequest(requestDetails) {
+            console.log('sendAuthorizedApiRequest');
+            currentApiRequest = requestDetails;
+            if (isAuthorized)
+                currentApiRequest = {};
+            else
+                GoogleAuth.signIn();
+        }
+    </script>
 
     <style>
         body {
