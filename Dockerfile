@@ -21,5 +21,5 @@ RUN python manage.py migrate
 EXPOSE 8080
 
 # run web server
-# CMD ["python", "manage.py", "runserver", "0:80"]
+# CMD ["python", "manage.py", "runserver", "0:8080"]
 CMD ["gunicorn", "-c", "gunicorn_config.py", "ET_Dashboard.wsgi"]
