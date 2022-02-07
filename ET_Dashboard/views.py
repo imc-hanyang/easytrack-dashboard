@@ -36,6 +36,8 @@ def handle_google_verification(request):
 
 @require_http_methods(['GET', 'POST'])
 def handle_login_api(request):
+    if not request.user.is_authenticated and 'openId' in request.GET:
+        pass
     if request.user.is_authenticated:
         db_user = db.get_user(email=request.user.email)
         if db_user is None:
