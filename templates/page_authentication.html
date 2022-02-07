@@ -41,7 +41,7 @@
                         }
 
                         let idToken = response.id_token;
-                        let redirectUrl = `${location.protocol}//${location.host}/{% url 'login' %}?idToken=${idToken}`;
+                        let redirectUrl = `${location.protocol}//${location.host}{% url 'login' %}?idToken=${idToken}`;
                         console.log(`redirectUrl: ${redirectUrl}`);
                         window.location.replace(redirectUrl);
                     });

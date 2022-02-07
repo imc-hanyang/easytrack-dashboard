@@ -58,7 +58,6 @@ def email_login(request, email, first_name, last_name):
         if dj_User.objects.filter(email=email).exists():
             dj_user = dj_User.objects.get(email=email)
         else:
-            dj_User.objects.create_user()
             dj_user = dj_User.objects.create_user(username=email, email=email, password=email)
             dj_user.first_name = first_name
             dj_user.last_name = last_name
