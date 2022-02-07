@@ -45,8 +45,7 @@
             gapi.client.init({
                 'apiKey': 'AIzaSyC0RSyYQIVC0palvzQQ5YUEW6g1taUT2VY',
                 'clientId': '79296265957-khvficocpqmhajv3c5obiljo2k95jqt3.apps.googleusercontent.com',
-                'scope': 'https://www.googleapis.com/auth/drive.metadata.readonly',
-                'discoveryDocs': ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+                'scope': "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid",
             }).then(function () {
                 GoogleAuth = gapi.auth2.getAuthInstance();
                 GoogleAuth.isSignedIn.listen(updateSigninStatus);
