@@ -50,7 +50,7 @@ ALLOWED_HOSTS = [
 try:
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS = [ip[:-1] + '1' for ip in ips] + ['127.0.0.1', 'localhost']
-except socket.herror:
+except (socket.herror, socket.gaierror):
     pass
 
 # Application definition
