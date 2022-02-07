@@ -1,2 +1,2 @@
-bind = '0:80'
+bind = '0:8080'
 workers = 5
