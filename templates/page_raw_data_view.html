@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-    {% load staticfiles %}
+    {% load static %}
     {% if records|length == 0 %}
         <h2>[ NO DATA / EMPTY ]</h2>
         <img src="{% static 'sad_icon.png' %}" alt="Under construction">

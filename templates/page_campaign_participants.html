@@ -10,7 +10,7 @@
             <th class="sync_time_column">Latest<br>sync time</th>
             <th class="action_column">Action</th>
         </tr>
-        {% load humanize staticfiles %}
+        {% load humanize static %}
         {% for participant in participants %}
             <tr data-href="{% url 'participant' %}?campaign_id={{ request.GET.id }}&participant_id={{ participant.id }}">
                 <td class="id_column">{{ participant.id }}</td>

@@ -11,7 +11,7 @@
             <th class="sync_time_column">Latest sync time</th>
             <th class="actions_column">Actions (on data)</th>
         </tr>
-        {% load humanize staticfiles %}
+        {% load humanize static %}
         {% for data_source in data_sources %}
             <tr data-source="{{ data_source.name }}" class="data_source">
                 <td class="icon_column"><img src="http://{{ request.get_host }}/static/{{ data_source.icon_name }}" alt="{{ data_source.name }}"></td>
