@@ -13,8 +13,9 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import path, re_path, include
+from django.contrib import admin
 from ET_Dashboard import views
 
 urlpatterns = [
@@ -60,3 +61,4 @@ urlpatterns = [
     path('huno_json_participant_stats/', views.huno_json_participant_stats),
     path('huno_json_lottery_winners/', views.huno_json_lottery_winners),
 ]
+urlpatterns += staticfiles_urlpatterns()
