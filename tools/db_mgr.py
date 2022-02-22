@@ -3,7 +3,6 @@ from subprocess import PIPE
 from tools import settings
 from tools import utils
 import subprocess
-import os
 import json
 
 
@@ -138,6 +137,7 @@ def create_or_update_campaign(db_creator_user, name, notes, configurations, star
     session = get_cassandra_session()
     if db_campaign is None:
         next_id = get_next_id(session=session, table_name='"et"."campaign"')
+        # create a campaign
         session.execute('insert into "et"."campaign"("id", "creatorId", "name", "notes", "configJson", "startTimestamp", "endTimestamp") values (%s,%s,%s,%s,%s,%s,%s);', (
             next_id,
             db_creator_user.id,

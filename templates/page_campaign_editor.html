@@ -38,6 +38,14 @@
                            required>
                 </td>
             </tr>
+            {% if not edit_mode %}
+                <tr>
+                    <td>
+                        <input id="showDataSourceTableCheckbox" type="checkbox" onclick="showDataSourceTableClicked();" checked>
+                        <label for="showDataSourceTableCheckbox">Data submitted by users<br>(i.e. not by researchers)</label>
+                    </td>
+                </tr>
+            {% endif %}
         </table>
 
         <a id="addRowButton" onclick="onInsertNewRowClick()">NEW DATA SOURCE</a>
@@ -64,6 +72,7 @@
                 {% endfor %}
             {% else %}
                 {# edit for a new campaign #}
+
                 {% for data_source in data_sources %}
                     <tr data-source="{{ data_source.name }}" class="data_source">
                         <td><input type="checkbox" name="{{ data_source.name }}"></td>
@@ -214,6 +223,16 @@
                 }
             };
             counter++;
+        }
+
+        function showDataSourceTableClicked() {
+            if ($('#showDataSourceTableCheckbox').is(':checked')) {
+                $('#addRowButton').show()
+                $('#dataSourceTable').show()
+            } else {
+                $('#addRowButton').hide()
+                $('#dataSourceTable').hide()
+            }
         }
     </script>
 

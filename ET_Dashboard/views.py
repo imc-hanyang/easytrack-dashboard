@@ -143,28 +143,33 @@ def handle_participants_list(request):
         if 'id' in request.GET and str(request.GET['id']).isdigit():
             db_campaign = db.get_campaign(campaign_id=int(request.GET['id']), db_researcher_user=db_user)
             if db_campaign is not None:
-                # campaign dashboard page
-                participants = []
-                for participant in db.get_campaign_participants(db_campaign=db_campaign):
-                    participants += [{
-                        'id': participant.id,
-                        'name': participant.name,
-                        'email': participant.email,
-                        'day_no': utils.calculate_day_number(join_timestamp=db.get_participant_join_timestamp(db_user=participant, db_campaign=db_campaign)),
-                        'amount_of_data': db.get_participants_amount_of_data(db_user=participant, db_campaign=db_campaign),
-                        'last_heartbeat_time': utils.timestamp_to_readable_string(timestamp_ms=db.get_participant_heartbeat_timestamp(db_user=participant, db_campaign=db_campaign)),
-                        'last_sync_time': utils.timestamp_to_readable_string(timestamp_ms=db.get_participant_last_sync_timestamp(db_user=participant, db_campaign=db_campaign)),
-                    }]
-                participants.sort(key=lambda x: x['id'])
-                return render(
-                    request=request,
-                    template_name='page_campaign_participants.html',
-                    context={
-                        'title': "%s's participants" % db_campaign.name,
-                        'campaign': db_campaign,
-                        'participants': participants
-                    }
-                )
+                # check if data is submitted by user or researchers
+                data_sources = db.get_campaign_data_sources(db_campaign=db_campaign)
+                if len(data_sources) == 0:
+                    return redirect(to='https://drive.google.com/drive/folders/1rho3la0tfZI_YLp4Lkq8MwuLF7K9SNIS')
+                else:
+                    # campaign dashboard page
+                    participants = []
+                    for participant in db.get_campaign_participants(db_campaign=db_campaign):
+                        participants += [{
+                            'id': participant.id,
+                            'name': participant.name,
+                            'email': participant.email,
+                            'day_no': utils.calculate_day_number(join_timestamp=db.get_participant_join_timestamp(db_user=participant, db_campaign=db_campaign)),
+                            'amount_of_data': db.get_participants_amount_of_data(db_user=participant, db_campaign=db_campaign),
+                            'last_heartbeat_time': utils.timestamp_to_readable_string(timestamp_ms=db.get_participant_heartbeat_timestamp(db_user=participant, db_campaign=db_campaign)),
+                            'last_sync_time': utils.timestamp_to_readable_string(timestamp_ms=db.get_participant_last_sync_timestamp(db_user=participant, db_campaign=db_campaign)),
+                        }]
+                    participants.sort(key=lambda x: x['id'])
+                    return render(
+                        request=request,
+                        template_name='page_campaign_participants.html',
+                        context={
+                            'title': "%s's participants" % db_campaign.name,
+                            'campaign': db_campaign,
+                            'participants': participants
+                        }
+                    )
             else:
                 return redirect(to='campaigns-list')
         else:
