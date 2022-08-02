@@ -28,75 +28,75 @@ DEBUG = True
 SITE_ID = 1
 
 ALLOWED_HOSTS = [
-    # localhost
-    'localhost',
-    '127.0.0.1',
-    '0.0.0.0',
+	# localhost
+	'localhost',
+	'127.0.0.1',
+	'0.0.0.0',
 
-    # inha addresses
-    '165.246.21.202',
-    'etdb.myvnc.com',
-    '165.246.42.173',
-    'etdb1.myvnc.com',
+	# inha addresses
+	'165.246.21.202',
+	'etdb.myvnc.com',
+	'165.246.42.173',
+	'etdb1.myvnc.com',
 
-    # docker-compose vm address
-    '10.10.2.6',
-    '175.106.98.214',
+	# docker-compose vm address
+	'10.10.2.6',
+	'175.106.98.214',
 
-    # k8s ingress addresses
-    'ingress-ngi-ingress-ngin-402cb-10054646-919e7b81641f.kr.lb.naverncp.com',
+	# k8s ingress addresses
+	'ingress-ngi-ingress-ngin-402cb-10054646-919e7b81641f.kr.lb.naverncp.com',
 
-    # hy-dhc dns
-    'etdb2.myvnc.com',
+	# hy-dhc dns
+	'etdb2.myvnc.com',
 ]
 
 try:
-    hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
-    INTERNAL_IPS = [ip[:-1] + '1' for ip in ips] + ['127.0.0.1', 'localhost']
+	hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
+	INTERNAL_IPS = [ip[:-1] + '1' for ip in ips] + ['127.0.0.1', 'localhost']
 except (socket.herror, socket.gaierror):
-    pass
+	pass
 
 # Application definition
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.sites',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'django.contrib.humanize',
-    'social_django',
-    'ET_Dashboard',
+	'django.contrib.admin',
+	'django.contrib.auth',
+	'django.contrib.sites',
+	'django.contrib.contenttypes',
+	'django.contrib.sessions',
+	'django.contrib.messages',
+	'django.contrib.staticfiles',
+	'django.contrib.humanize',
+	'social_django',
+	'ET_Dashboard',
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+	'django.middleware.security.SecurityMiddleware',
+	'django.contrib.sessions.middleware.SessionMiddleware',
+	'django.middleware.common.CommonMiddleware',
+	'django.middleware.csrf.CsrfViewMiddleware',
+	'django.contrib.auth.middleware.AuthenticationMiddleware',
+	'django.contrib.messages.middleware.MessageMiddleware',
+	'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 ROOT_URLCONF = 'ET_Dashboard.urls'
 
 TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')]
-        ,
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
+	{
+		'BACKEND': 'django.template.backends.django.DjangoTemplates',
+		'DIRS': [os.path.join(BASE_DIR, 'templates')]
+		,
+		'APP_DIRS': True,
+		'OPTIONS': {
+			'context_processors': [
+				'django.template.context_processors.debug',
+				'django.template.context_processors.request',
+				'django.contrib.auth.context_processors.auth',
+				'django.contrib.messages.context_processors.messages',
+			],
+		},
+	},
 ]
 
 WSGI_APPLICATION = 'ET_Dashboard.wsgi.application'
@@ -105,10 +105,10 @@ WSGI_APPLICATION = 'ET_Dashboard.wsgi.application'
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
+	'default': {
+		'ENGINE': 'django.db.backends.sqlite3',
+		'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+	}
 }
 
 # Internationalization
@@ -130,14 +130,14 @@ USE_TZ = True
 # STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
 STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, 'static'),
+	os.path.join(BASE_DIR, 'static'),
 )
 
 AUTHENTICATION_BACKENDS = (
-    'django.contrib.auth.backends.ModelBackend',
-    # 'social_core.backends.google.GoogleOpenId',
-    'social_core.backends.google_openidconnect.GoogleOpenIdConnect',
-    'social_core.backends.google.GoogleOAuth2',
+	'django.contrib.auth.backends.ModelBackend',
+	# 'social_core.backends.google.GoogleOpenId',
+	'social_core.backends.google_openidconnect.GoogleOpenIdConnect',
+	'social_core.backends.google.GoogleOAuth2',
 )
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = "79296265957-khvficocpqmhajv3c5obiljo2k95jqt3.apps.googleusercontent.com"
