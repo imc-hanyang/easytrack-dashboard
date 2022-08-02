@@ -18,8 +18,8 @@ RUN python manage.py makemigrations
 RUN python manage.py migrate
 
 # open ports
-EXPOSE 8443
+EXPOSE 80
 
 # run web server
-# CMD ["python", "manage.py", "runserver", "0:8080"]
-CMD ["gunicorn", "-c", "gunicorn_config.py", "ET_Dashboard.wsgi"]
+CMD ["python", "manage.py", "runserver", "0:80"]
+#CMD ["gunicorn", "-c", "gunicorn_config.py", "ET_Dashboard.wsgi"]
