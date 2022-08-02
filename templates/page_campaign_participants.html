@@ -31,6 +31,10 @@
         {% endfor %}
     </table>
 
+    {% if debug and not joined %}
+        <a href="{% url 'dev-join-campaign' %}?campaign_id={{ campaign.id }}" id="dev_join_campaign_button">Join as a participant</a>
+    {% endif %}
+
     <script>
         {# for handling campaign row clicks #}
         document.addEventListener("DOMContentLoaded", () => {
@@ -54,21 +58,27 @@
         .id_column {
             width: 5%;
         }
+
         .name_column {
             width: 20%;
         }
+
         .duration_column {
             width: 10%;
         }
+
         .amount_column {
             width: 15%;
         }
+
         .heartbeat_column {
             width: 20%;
         }
+
         .sync_time_column {
             width: 20%;
         }
+
         .action_column {
             width: 10%;
         }
@@ -129,6 +139,25 @@
         img.action_button_green:hover, img.action_button_red:hover {
             background: #4285F4;
             color: black;
+        }
+
+        #dev_join_campaign_button {
+            background: royalblue;
+            padding: 10px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            float: left;
+            font-size: larger;
+            cursor: pointer;
+        {#transition: all 0.3s;#} text-decoration: none;
+        }
+
+        #dev_join_campaign_button:hover {
+            background: #666;
+            color: #FFF;
         }
     </style>
 {% endblock %}

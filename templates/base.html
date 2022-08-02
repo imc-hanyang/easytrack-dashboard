@@ -18,7 +18,9 @@
     </ul>
     {% if user.is_authenticated %}
         <ul id="right_nav">
-            <li><a href="{% url 'logout' %}"> {{ request.user.email }} (LOGOUT)</a></li>
+            <li>
+                <a href="{% url 'logout' %}"> {{ request.user.email }} (LOGOUT)</a>
+            </li>
         </ul>
     {% endif %}
 </header>
@@ -29,7 +31,11 @@
     {% endblock %}
 </div>
 <footer>
-    <a href="{% url 'campaigns-list' %}">EasyTrack</a>
+    <a style="font-size: 20px" href="{% url 'campaigns-list' %}">EasyTrack</a>
+    {% if debug %}
+        {% if id is not None %} <br> <a style="font-size: 16px"> user_id={{ id }} </a> {% endif %}
+        {% if session_key %} <br> <a style="font-size: 16px"> session_key="{{ session_key }}" </a> {% endif %}
+    {% endif %}
 </footer>
 </body>
 <style>
@@ -84,7 +90,7 @@
     footer {
         clear: both;
 
-        height: 30px;
+        height: {% if debug %} 70px {% else %} 30px {% endif %};
         background-color: #4285F4;
         position: relative;
         display: block;

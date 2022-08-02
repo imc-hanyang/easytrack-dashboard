@@ -62,14 +62,14 @@ def handle_development_login_api(request):
 	if db_user is None:
 		print('new user : ', end='')
 		session_key = utils.md5(value=f'{dev_email}{utils.now_us()}')
-		db_user = db.create_user(name=dev_email, email=dev_email, session_key=session_key)
+		db_user = db.create_user(name='Developer', email=dev_email, session_key=session_key)
 		if db_user is None:
 			dj_logout(request=request)
 		else:
 			if dj_User.objects.filter(email=dev_email).exists():
 				dj_user = dj_User.objects.get(email=dev_email)
 			else:
-				dj_user = dj_User.objects.create_user(username=dev_email, email=dev_email, password=dev_email)
+				dj_user = dj_User.objects.create_user(username=dev_email, email=dev_email, password=dev_email, first_name='Developer')
 			if dj_authenticate(username=dev_email, password=dev_email):
 				dj_login(request=request, user=dj_user, backend='django.contrib.auth.backends.ModelBackend')
 				return redirect(to='campaigns-list')
@@ -79,10 +79,7 @@ def handle_development_login_api(request):
 		if dj_User.objects.filter(email=dev_email).exists():
 			dj_user = dj_User.objects.get(email=dev_email)
 		else:
-			dj_User.objects.create_user()
-			dj_user = dj_User.objects.create_user(username=dev_email, email=dev_email, password=dev_email)
-			dj_user.first_name = 'ET'
-			dj_user.last_name = 'Development'
+			dj_user = dj_User.objects.create_user(username=dev_email, email=dev_email, password=dev_email, first_name='Developer')
 			dj_user.save()
 		if dj_authenticate(username=dev_email, password=dev_email):
 			dj_login(request=request, user=dj_user, backend='django.contrib.auth.backends.ModelBackend')
@@ -128,6 +125,8 @@ def handle_campaigns_list(request):
 			context={
 				'title': "%s's campaigns" % request.user.get_full_name(),
 				'my_campaigns': my_campaigns,
+				'id': db_user.id,
+				'session_key': db_user.sessionKey
 			}
 		)
 	else:
@@ -167,7 +166,10 @@ def handle_participants_list(request):
 						context={
 							'title': "%s's participants" % db_campaign.name,
 							'campaign': db_campaign,
-							'participants': participants
+							'participants': participants,
+							'id': db_user.id,
+							'session_key': db_user.sessionKey,
+							'joined': db.user_is_bound_to_campaign(db_user=db_user, db_campaign=db_campaign)
 						}
 					)
 			else:
@@ -213,7 +215,9 @@ def handle_researchers_list(request):
 					context={
 						'title': "%s's researchers" % db_campaign.name,
 						'campaign': db_campaign,
-						'researchers': researchers
+						'researchers': researchers,
+						'id': db_user.id,
+						'session_key': db_user.sessionKey
 					}
 				)
 			else:
@@ -254,16 +258,37 @@ def handle_participants_data_list(request):
 							request=request,
 							template_name='page_participant_data_sources_stats.html',
 							context={
-								'title': f'Data submitted by {db_participant_user.name}, {db_participant_user.email} (ID = {db_participant_user.id})',
+								'title': f'Data submitted by {db_participant_user.email} (ID = {db_participant_user.id})',
 								'campaign': db_campaign,
 								'participant': db_participant_user,
-								'data_sources': data_sources
+								'data_sources': data_sources,
+								'id': db_user.id,
+								'session_key': db_user.sessionKey
 							}
 						)
 					else:
 						return redirect(to='campaigns-list')
 				else:
 					return redirect(to='campaigns-list')
+			else:
+				return redirect(to='campaigns-list')
+		else:
+			return redirect(to='campaigns-list')
+	else:
+		dj_logout(request=request)
+		return redirect(to='login')
+
+
+@login_required
+@require_http_methods(['GET'])
+def dev_join_campaign(request):
+	db_user = db.get_user(email=request.user.email)
+	if db_user is not None:
+		if 'campaign_id' in request.GET and str(request.GET['campaign_id']).isdigit():
+			db_campaign = db.get_campaign(campaign_id=int(request.GET['campaign_id']), db_researcher_user=db_user)
+			if db_campaign is not None:
+				db.bind_participant_to_campaign(db_campaign=db_campaign, db_user=db_user)
+				return redirect(to='campaigns-list')
 			else:
 				return redirect(to='campaigns-list')
 		else:
@@ -310,7 +335,9 @@ def handle_raw_samples_list(request):
 									context={
 										'title': db_data_source.name,
 										'records': records,
-										'from_timestamp': from_timestamp
+										'from_timestamp': from_timestamp,
+										'id': db_user.id,
+										'session_key': db_user.sessionKey
 									}
 								)
 							else:
@@ -669,7 +696,9 @@ def handle_dataset_info(request):
 					context={
 						'campaign': db_campaign,
 						'data_sources': campaign_data_sources,
-						'participants': db_participants
+						'participants': db_participants,
+						'id': db_user.id,
+						'session_key': db_user.sessionKey
 					}
 				)
 			else:

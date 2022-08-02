@@ -28,6 +28,7 @@ urlpatterns = [
 	path('', views.handle_campaigns_list, name='campaigns-list'),
 	path('campaign/', views.handle_participants_list, name='participants-list'),
 	path('participant/', views.handle_participants_data_list, name='participant'),
+	path('dev-join/', views.dev_join_campaign, name='dev-join-campaign'),
 	path('data/', views.handle_raw_samples_list, name='view_data'),
 	path('edit/', views.handle_campaign_editor, name='campaign-editor'),
 	path('notifications/', views.handle_notifications_list, name='notifications'),
