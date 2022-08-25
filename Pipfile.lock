@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "c1b9294fbb44d5a82e09e61f7e10aea20483c055bd9c869bc30249b565a26705"
+            "sha256": "70bbdbf1260f4d0c15b66796edfa79281290ab20c247196736ede5f80870927a"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -177,6 +177,13 @@
             "markers": "python_version >= '3.6'",
             "version": "==3.2.0"
         },
+        "peewee": {
+            "hashes": [
+                "sha256:6d5db3babc33819ac326f1550e5a39677f4584094c567a7b88cc6bf7bcdcb687"
+            ],
+            "index": "pypi",
+            "version": "==3.15.1"
+        },
         "plotly": {
             "hashes": [
                 "sha256:4d36d9859b7a153b273562deeed8c292587a472eb1fd57cd4158ec89d9defadb",
@@ -287,6 +294,14 @@
             ],
             "index": "pypi",
             "version": "==2.8.2"
+        },
+        "python-dotenv": {
+            "hashes": [
+                "sha256:b7e3b04a59693c42c36f9ab1cc2acc46fa5df8c78e178fc33a8d4cd05c8d498f",
+                "sha256:d92a187be61fe482e4fd675b6d52200e7be63a12b724abbf931a40ce4fa92938"
+            ],
+            "index": "pypi",
+            "version": "==0.20.0"
         },
         "python-jose": {
             "hashes": [

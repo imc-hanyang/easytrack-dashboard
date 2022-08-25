@@ -25,7 +25,7 @@ from django.http import HttpResponse
 from django.http import JsonResponse
 
 # EasyTrack
-from ET_Dashboard.models import EnhancedDataSource
+from dashboard.models import EnhancedDataSource
 from tools import db_mgr as db
 from tools import utils
 
@@ -740,7 +740,7 @@ def handle_download_data_api(request):
 				if 'participant_id' in request.GET and utils.is_numeric(request.GET['participant_id']):
 					db_participant_user = db.get_user(user_id=int(request.GET['participant_id']))
 					if db_participant_user is not None:
-						# dump db data
+						# dump orm data
 						dump_file_path = db.dump_data(db_campaign=db_campaign, db_user=db_participant_user)
 						print(f'dump path : {dump_file_path}')
 						with open(dump_file_path, 'rb') as r:
@@ -834,7 +834,7 @@ def handle_download_dataset_api(request):
 					fp.writestr('!README.txt', r.read())
 
 				for db_participant_user in db.get_campaign_participants(db_campaign=db_campaign):
-					# dump db data
+					# dump orm data
 					dump_file_path = db.dump_data(db_campaign=db_campaign, db_user=db_participant_user)
 					with open(dump_file_path, 'rb') as r:
 						dump_content = bytes(r.read())
@@ -875,8 +875,8 @@ def handle_db_mgmt_api(request):
 	# 1. copy campaign
 	cur.execute('select * from "et"."campaign" where "id"=4;')
 	pg_campaign = cur.fetchone()
-	# cs_creator_user = db.get_user(user_id=2)
-	# cs_campaign = db.create_or_update_campaign(
+	# cs_creator_user = orm.get_user(user_id=2)
+	# cs_campaign = orm.create_or_update_campaign(
 	#     db_creator_user=cs_creator_user,
 	#     name=pg_campaign['name'],
 	#     notes=pg_campaign['notes'],
@@ -905,10 +905,10 @@ def handle_db_mgmt_api(request):
 		# 2.1. copy participant
 		cur.execute('select * from "et"."user" where "id"=%s;', (pg_stat['user_id'],))
 		pg_participant = cur.fetchone()
-		cs_participant = db.get_user(email=pg_participant['email'])  # db.create_user(name=pg_participant['name'], email=pg_participant['email'], session_key=utils.md5(value=f'{pg_participant["email"]}{utils.now_us()}'))
+		cs_participant = db.get_user(email=pg_participant['email'])  # orm.create_user(name=pg_participant['name'], email=pg_participant['email'], session_key=utils.md5(value=f'{pg_participant["email"]}{utils.now_us()}'))
 		print(f'   participant copied (name = {cs_participant.name})')
 		# 2.2. copy data
-		# db.bind_participant_to_campaign(db_user=cs_participant, db_campaign=cs_campaign)
+		# orm.bind_participant_to_campaign(db_user=cs_participant, db_campaign=cs_campaign)
 		cur.execute(f'select * from "data"."{pg_campaign["id"]}-{pg_participant["id"]}";')
 		for pg_value in cur.fetchall():
 			cs_data_source_id = data_source_id_map[pg_value['data_source_id']]
