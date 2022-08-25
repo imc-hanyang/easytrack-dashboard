@@ -870,7 +870,7 @@ def handle_db_mgmt_api(request):
 		password='postgres'
 	)
 	cur = conn.cursor(cursor_factory=psycopg2_extras.DictCursor)
-	session = db.get_cassandra_session()
+	session = db.get_db_connection()
 
 	# 1. copy campaign
 	cur.execute('select * from "et"."campaign" where "id"=4;')

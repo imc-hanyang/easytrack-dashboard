@@ -1,0 +1,22 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+django = "*"
+plotly = "*"
+python-dateutil = "*"
+python-social-auth = "*"
+python3-openid = "*"
+requests-oauthlib = "*"
+social = "*"
+social-auth-app-django = "*"
+social-auth-core = "*"
+python-jose = "*"
+psycopg2-binary = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"
