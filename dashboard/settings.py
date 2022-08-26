@@ -1,4 +1,4 @@
-from utils import failIfNone
+from utils import notnull
 from dotenv import load_dotenv
 import socket
 import os
@@ -48,15 +48,15 @@ TEMPLATES = [
 		},
 	},
 ]
-DB_PASSWORD = failIfNone(os.getenv(key='DATABASE_PASSWORD'))
+DB_PASSWORD = notnull(os.getenv(key='DATABASE_PASSWORD'))
 DATABASES = {
 	'default': {
 		'ENGINE': 'django.orm.backends.postgresql',
-		'HOST': failIfNone(os.getenv(key='DATABASE_HOST')),
-		'PORT': int(failIfNone(os.getenv(key='DATABASE_PORT'))),
-		'NAME': failIfNone(os.getenv(key='DATABASE_NAME')),
-		'USER': failIfNone(os.getenv(key='DATABASE_USER')),
-		'PASSWORD': failIfNone(os.getenv(key='DATABASE_PASSWORD'))
+		'HOST': notnull(os.getenv(key='DATABASE_HOST')),
+		'PORT': int(notnull(os.getenv(key='DATABASE_PORT'))),
+		'NAME': notnull(os.getenv(key='DATABASE_NAME')),
+		'USER': notnull(os.getenv(key='DATABASE_USER')),
+		'PASSWORD': notnull(os.getenv(key='DATABASE_PASSWORD'))
 	}
 }
 

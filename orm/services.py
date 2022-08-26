@@ -1,10 +1,10 @@
 from datetime import datetime as dt
-from typing import Dict
+from typing import Dict, List, Optional
 
 # app
 from orm.models import User, Campaign, Participant, DataTable, Supervisor, DataSource
-from orm.selectors import is_participant, is_supervisor
-from utils import failIfNone
+from orm.selectors import is_participant, is_supervisor, find_data_source
+from utils import notnull
 
 
 def create_user(
@@ -21,9 +21,9 @@ def create_user(
 	"""
 
 	return User.create(
-		email=failIfNone(email),
-		session_key=failIfNone(session_key),
-		name=failIfNone(name),
+		email=notnull(email),
+		name=notnull(name),
+		session_key=notnull(session_key)
 	)
 
 
@@ -38,7 +38,7 @@ def set_user_session_key(
 	:return: None
 	"""
 
-	user.session_key = failIfNone(new_session_key)
+	user.session_key = notnull(new_session_key)
 	user.save()
 
 
@@ -55,8 +55,8 @@ def add_participant_to_campaign(
 	"""
 
 	if is_participant(
-		user=failIfNone(add_user),
-		campaign=failIfNone(campaign)
+		user=notnull(add_user),
+		campaign=notnull(campaign)
 	): return False
 
 	# 1. bind the user to campaign
@@ -84,11 +84,11 @@ def add_supervisor_to_campaign(
 	:return: whether user has been bound (as supervisor)
 	"""
 
-	campaign: Campaign = failIfNone(supervisor).campaign
+	campaign: Campaign = notnull(supervisor).campaign
 
 	if is_supervisor(
-		user=failIfNone(add_user),
-		campaign=failIfNone(campaign)
+		user=notnull(add_user),
+		campaign=notnull(campaign)
 	): return False
 
 	Supervisor.create(
@@ -107,7 +107,7 @@ def remove_supervisor_from_campaign(
 	:return: None
 	"""
 
-	campaign: Campaign = failIfNone(supervisor).campaign
+	campaign: Campaign = notnull(supervisor).campaign
 	if supervisor.user != campaign.owner: supervisor.delete()
 
 
@@ -129,10 +129,10 @@ def create_campaign(
 
 	# 1. create a campaign
 	campaign = Campaign.create(
-		owner=failIfNone(owner),
-		name=failIfNone(name),
-		start_ts=failIfNone(start_ts),
-		end_ts=failIfNone(end_ts)
+		owner=notnull(owner),
+		name=notnull(name),
+		start_ts=notnull(start_ts),
+		end_ts=notnull(end_ts)
 	)
 
 	# 2. add owner as a supervisor
@@ -160,10 +160,10 @@ def update_campaign(
 	:return: newly created Campaign instance
 	"""
 
-	campaign: Campaign = failIfNone(supervisor).campaign
-	campaign.name = failIfNone(name)
-	campaign.start_ts = failIfNone(start_ts)
-	campaign.end_ts = failIfNone(end_ts)
+	campaign: Campaign = notnull(supervisor).campaign
+	campaign.name = notnull(name)
+	campaign.start_ts = notnull(start_ts)
+	campaign.end_ts = notnull(end_ts)
 	campaign.save()
 
 
@@ -176,7 +176,7 @@ def delete_campaign(
 	:return: None
 	"""
 
-	campaign: Campaign = failIfNone(supervisor).campaign
+	campaign: Campaign = notnull(supervisor).campaign
 	if supervisor.user == campaign.owner: campaign.delete()
 
 
@@ -192,10 +192,79 @@ def create_data_source(
 	"""
 
 	if DataSource.get_or_none(
-		name=failIfNone(name)
+		name=notnull(name)
 	): return
 
 	DataSource.create(
 		name=name,
-		icon_name=failIfNone(icon_name)
+		icon_name=notnull(icon_name)
+	)
+
+
+def create_data_record(
+	participant: Participant,
+	data_source: DataSource,
+	ts: dt,
+	val: Dict
+) -> None:
+	"""
+	Creates a data record in raw data table (e.g. sensor reading)
+	:param participant: participant of a campaign
+	:param data_source: data source of the data record
+	:param ts: timestamp
+	:param val: value
+	:return: None
+	"""
+
+	DataTable.insert(
+		participant=participant,
+		data_source=data_source,
+		ts=ts,
+		val=val
+	)
+
+
+def create_data_records(
+	participant: Participant,
+	data_source_ids: List[int],
+	tss: List[dt],
+	vals: List[Dict]
+) -> None:
+	"""
+	Creates a data record in raw data table (e.g. sensor reading)
+	:param participant: participant of a campaign
+	:param data_source_ids: data sources of the data records
+	:param tss: timestamps
+	:param vals: values
+	:return: None
+	"""
+
+	data_sources: Dict[int, DataSource] = dict()
+	for ts, data_source_id, val in zip(tss, data_source_ids, vals):
+		if data_source_id not in data_sources:
+			db_data_source = find_data_source(data_source_id=data_source_id)
+			if db_data_source is None: continue
+			data_sources[data_source_id] = db_data_source
+		create_data_record(
+			participant=participant,
+			data_source=data_sources[data_source_id],
+			ts=ts,
+			val=val
+		)
+
+
+def dump_data(
+	participant: Participant,
+	data_source: Optional[DataSource]
+) -> str:
+	"""
+	Dumps content of a particular DataTable into a downloadable file
+	:param participant: participant that has reference to user and campaign
+	:param data_source: which data source to dump
+	:return: path to the downloadable file
+	"""
+
+	return DataTable.dump_to_file(
+		participant=notnull(participant),
+		data_source=data_source
 	)

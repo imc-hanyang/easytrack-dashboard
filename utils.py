@@ -1,7 +1,10 @@
 from typing import Any
+import tempfile
+from os.path import join, exists
+from os import mkdir, chmod
 
 
-def replaceIfNone(
+def replacenull(
 	value: Any,
 	replacement: Any
 ):
@@ -12,6 +15,7 @@ def replaceIfNone(
 	:param replacement: replacement if value is None
 	:return: value or replacement depending on value's content
 	"""
+
 	if value is None:
 		if replacement is None:
 			raise ValueError(f'replacement value cannot be {None}')
@@ -21,7 +25,7 @@ def replaceIfNone(
 		return value  # is not None
 
 
-def failIfNone(
+def notnull(
 	value: Any
 ) -> Any:
 	"""
@@ -29,5 +33,30 @@ def failIfNone(
 	:param value: value being checked
 	:return: value if it is not None
 	"""
+
 	assert value is not None
 	return value
+
+
+def get_temp_filepath(
+	filename: str
+) -> str:
+	"""
+	Validates presence of a temporary directory, and opens a file for writing in the directory.
+	:param filename: filename for writing
+	:return: path to the file
+	"""
+
+	root = join(tempfile.gettempdir(), 'easytrack_dashboard')
+	if not exists(root):
+		mkdir(root)
+		chmod(root, 0o777)
+
+	res = join(
+		root,
+		notnull(filename)
+	)
+	fp = open(res, 'w+', encoding='utf8')
+	fp.close()
+
+	return res
