@@ -1,6 +1,5 @@
-from utils import notnull
+from src.utils import notnull
 from dotenv import load_dotenv
-import socket
 import os
 
 # .env file
@@ -48,10 +47,9 @@ TEMPLATES = [
 		},
 	},
 ]
-DB_PASSWORD = notnull(os.getenv(key='DATABASE_PASSWORD'))
 DATABASES = {
 	'default': {
-		'ENGINE': 'django.orm.backends.postgresql',
+		'ENGINE': 'django.db.backends.postgresql_psycopg2',
 		'HOST': notnull(os.getenv(key='DATABASE_HOST')),
 		'PORT': int(notnull(os.getenv(key='DATABASE_PORT'))),
 		'NAME': notnull(os.getenv(key='DATABASE_NAME')),

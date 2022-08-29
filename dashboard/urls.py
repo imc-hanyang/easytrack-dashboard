@@ -16,17 +16,14 @@ urlpatterns = [
 	path('dev-join/', views.dev_join_campaign, name='dev-join-campaign'),
 	path('data/', views.handle_raw_samples_list, name='view_data'),
 	path('edit/', views.handle_campaign_editor, name='campaign-editor'),
-	path('notifications/', views.handle_notifications_list, name='notifications'),
 	path('researchers/', views.handle_researchers_list, name='manage-researchers'),
 
 	# API (e.g., download file)
 	path('dataset-info/', views.handle_dataset_info, name='dataset-info'),
 	path('download-dataset/', views.handle_download_dataset_api, name='download-dataset'),
-	path('announce/', views.make_announcement, name='announce'),
 	path('delete/', views.handle_delete_campaign_api, name='delete-campaign'),
 	path('download-data/', views.handle_download_data_api, name='download-data'),
 	path('download-csv/', views.handle_download_csv_api, name='download-csv'),
-	path('dbmgmt/', views.handle_db_mgmt_api, name='orm-mgmt'),
 
 	# visuals (e.g., DQ)
 	path('et-monitor/', views.handle_easytrack_monitor, name='easytrack-monitor'),
@@ -35,16 +32,5 @@ urlpatterns = [
 	path('admin/', admin.site.urls),
 	path('google43e44b3701ba10c8.html', views.handle_google_verification),
 	path('google-auth/', include('social_django.urls', namespace='social')),
-
-	# APIs for huno
-	path('huno_json_total_ema_score/', views.huno_json_total_ema_score),
-	path('huno_json_hr/', views.huno_json_hr),
-	path('huno_json_sleep/', views.huno_json_sleep),
-	path('huno_json_user_info/', views.huno_json_user_info),
-	path('huno_json_steps/', views.huno_json_steps),
-	path('huno_json_total_reward/', views.huno_json_total_reward),
-	path('huno_json_ema_resp_rate/', views.huno_json_ema_resp_rate),
-	path('huno_json_participant_stats/', views.huno_json_participant_stats),
-	path('huno_json_lottery_winners/', views.huno_json_lottery_winners),
 ]
 urlpatterns += staticfiles_urlpatterns()

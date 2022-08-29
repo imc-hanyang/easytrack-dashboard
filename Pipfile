@@ -17,6 +17,7 @@ python-jose = "*"
 psycopg2-binary = "*"
 python-dotenv = "*"
 peewee = "*"
+djangorestframework = "*"
 
 [dev-packages]
 

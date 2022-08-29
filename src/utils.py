@@ -1,7 +1,11 @@
-from typing import Any
-import tempfile
+from datetime import datetime as dt
 from os.path import join, exists
 from os import mkdir, chmod
+from typing import Any, List
+import tempfile
+import hashlib
+import time
+import re
 
 
 def replacenull(
@@ -38,6 +42,67 @@ def notnull(
 	return value
 
 
+def ts2int(
+	value: dt
+) -> int:
+	return int(round(value.timestamp() * 1000))
+
+
+def int2ts(
+	value: int
+) -> dt:
+	return dt.fromtimestamp(value / 1000)
+
+
+def ts2str(
+	ts: dt
+) -> str:
+	if ts is None or ts == 0:
+		return "N/A"
+	else:
+		return ts.strftime('%m/%d (%a), %I:%M %p')
+
+
+def ts2web(
+	ts: dt
+) -> str:
+	return ts.strftime('%Y-%m-%dT%H:%M')
+
+
+def is_numeric(
+	s: str,
+	floating=False
+) -> bool:
+	if floating:
+		return re.search(pattern=r'^[+-]?\d+\.\d+$', string=s) is not None
+	else:
+		return re.search(pattern=r'^[+-]?\d+$', string=s) is not None
+
+
+def param_check(
+	request_body,
+	params: List[str]
+) -> bool:
+	for param in params:
+		if param not in request_body:
+			return False
+	return True
+
+
+def now_us() -> int:
+	return int(time.time() * 1000 * 1000)
+
+
+def now_ms() -> int:
+	return int(now_us() / 1000)
+
+
+def md5(
+	value: str
+) -> str:
+	return hashlib.md5(value.encode()).hexdigest()
+
+
 def get_temp_filepath(
 	filename: str
 ) -> str:
@@ -54,7 +119,7 @@ def get_temp_filepath(
 
 	res = join(
 		root,
-		notnull(filename)
+		filename
 	)
 	fp = open(res, 'w+', encoding='utf8')
 	fp.close()

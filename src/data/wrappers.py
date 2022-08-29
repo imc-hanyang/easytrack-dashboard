@@ -1,125 +1,28 @@
 from datetime import datetime as dt
 from datetime import timedelta as td
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, OrderedDict
+import collections
 
 # libs
-from peewee import AutoField, TextField, ForeignKeyField, TimestampField
-from peewee import Model, PostgresqlDatabase
-from playhouse.postgres_ext import BinaryJSONField
-import psycopg2.extras as pg2_extras
 import psycopg2 as pg2
+import psycopg2.extras as pg2_extras
 
 # app
+from src.data import models
+from src.utils import notnull, get_temp_filepath
 from dashboard.settings import DATABASES as DB
-from orm.selectors import find_data_source
-from utils import notnull, get_temp_filepath
-
-db = PostgresqlDatabase(
-	database=DB["default"]["NAME"],
-	host=DB["default"]["HOST"],
-	port=DB["default"]["PORT"],
-	user=DB["default"]["USER"],
-	password=DB["default"]["PASSWORD"]
-)
-
-
-class User(Model):
-	id = AutoField(primary_key=True)
-	email = TextField(unique=True)
-	name = TextField()
-	session_key = TextField(default=None)
-	tag = TextField(default=None)
-
-	class Meta:
-		database = db
-		db_table = 'user'
-		schema = 'et'
-
-
-class Campaign(Model):
-	id = AutoField(primary_key=True)
-	owner = ForeignKeyField(User, on_delete='CASCADE')
-	name = TextField()
-	start_ts = TimestampField(default=dt.now)
-	end_ts = TimestampField(default=lambda: dt.now() + td(days=90))
-
-	class Meta:
-		database = db
-		db_table = 'campaign'
-		schema = 'et'
-
-
-class DataSource(Model):
-	id = AutoField(primary_key=True)
-	name = TextField(unique=True)
-	icon_name = TextField()
-
-	class Meta:
-		database = db
-		db_table = 'data_source'
-		schema = 'et'
-
-
-class CampaignDataSources(Model):
-	campaign = ForeignKeyField(Campaign, on_delete='CASCADE')
-	data_source = ForeignKeyField(DataSource, on_delete='CASCADE')
-
-	class Meta:
-		database = db
-		db_table = 'campaign_data_source'
-		schema = 'et'
-		indexes = (
-			(('campaign', 'data_source'), True),  # unique together
-		)
-
-
-class Supervisor(Model):
-	campaign = ForeignKeyField(Campaign, on_delete='CASCADE')
-	user = ForeignKeyField(User, on_delete='CASCADE')
-
-	class Meta:
-		database = db
-		db_table = 'supervisor'
-		schema = 'et'
-		indexes = (
-			(('campaign', 'user'), True),  # unique together
-		)
-
-
-class Participant(Model):
-	campaign = ForeignKeyField(Campaign, on_delete='CASCADE')
-	user = ForeignKeyField(User, on_delete='CASCADE')
-	join_ts = TimestampField(default=dt.now)
-	last_heartbeat_ts = TimestampField(default=dt.now)
-
-	class Meta:
-		database = db
-		db_table = 'campaign_participant_stats'
-		schema = 'et'
-
-
-class HourlyStats(Model):
-	campaign = ForeignKeyField(Campaign, on_delete='CASCADE')
-	user = ForeignKeyField(User, on_delete='CASCADE')
-	data_source = ForeignKeyField(DataSource, on_delete='CASCADE')
-	amounts = BinaryJSONField()
-
-	class Meta:
-		database = db
-		db_table = 'campaign_participant_stats'
-		schema = 'et'
 
 
 class DataRecord:
 	def __init__(
 		self,
-		data_source: DataSource,
+		data_source: models.DataSource,
 		ts: dt,
 		val: Dict
 	):
-		self.data_source = notnull(data_source)
-		self.ts = notnull(ts)
-		self.val = notnull(val)
+		self.data_source: models.DataSource = notnull(data_source)
+		self.ts: dt = notnull(ts)
+		self.val: Dict = notnull(val)
 
 
 class DataTable:
@@ -138,7 +41,7 @@ class DataTable:
 
 	@staticmethod
 	def __get_name(
-		participant: Participant
+		participant: models.Participant
 	) -> str:
 		"""
 		Returns a table name for particular campaign participant
@@ -153,7 +56,7 @@ class DataTable:
 
 	@staticmethod
 	def create(
-		participant: Participant
+		participant: models.Participant
 	) -> None:
 		"""
 		Creates a table for a participant to store their data
@@ -166,15 +69,15 @@ class DataTable:
 		DataTable.__connect()
 		cur = DataTable.con.cursor()
 		cur.execute('create schema if not exists data')
-		cur.execute(f'create table if not exists data.{table_name}(data_source_id int references et.data_source (id), ts timestamp, val jsonb)')
-		cur.execute(f'create index if not exists idx_{table_name}_ts on data.{table_name} (ts)')
+		cur.execute(f'create table if not exists data.{table_name}(data_source_id int references et.data_source (id), ts timestamp, val jsonb)')  # noqa
+		cur.execute(f'create index if not exists idx_{table_name}_ts on data.{table_name} (ts)')  # noqa
 		cur.close()
 		DataTable.con.commit()
 
 	@staticmethod
 	def insert(
-		participant: Participant,
-		data_source: DataSource,
+		participant: models.Participant,
+		data_source: models.DataSource,
 		ts: dt,
 		val: Dict
 	) -> None:
@@ -191,14 +94,18 @@ class DataTable:
 
 		DataTable.__connect()
 		cur = DataTable.con.cursor()
-		cur.execute(f'insert into data.{table_name}(data_source_id, ts, val) values (%s,%s,%s)', (data_source, ts, pg2_extras.Json(val)))
+		cur.execute(f'insert into data.{table_name}(data_source_id, ts, val) values (%s,%s,%s)', (  # noqa
+			data_source,
+			ts,
+			pg2_extras.Json(val)
+		))
 		cur.close()
 		DataTable.con.commit()
 
 	@staticmethod
 	def select_next_k(
-		participant: Participant,
-		data_source: DataSource,
+		participant: models.Participant,
+		data_source: models.DataSource,
 		from_ts: dt,
 		limit: int
 	) -> List[DataRecord]:
@@ -215,20 +122,24 @@ class DataTable:
 
 		DataTable.__connect()
 		cur: pg2_extras.DictCursor = DataTable.con.cursor(cursor_factory=pg2_extras.DictRow)
-		cur.execute(f'select data_source_id, ts, val from data.{table_name} where data_source_id = %s and ts >= %s limit %s', (data_source, from_ts, limit))
+		cur.execute(f'select data_source_id, ts, val from data.{table_name} where data_source_id = %s and ts >= %s limit %s', (  # noqa
+			data_source,
+			from_ts,
+			limit
+		))
 		rows = cur.fetchall()
 		cur.close()
 
 		return list(map(lambda row: DataRecord(
-			data_source=find_data_source(data_source_id=row.data_source_id),
+			data_source=models.DataSource.get_by_id(pk=row.data_source_id),
 			ts=row.ts,
 			val=row.val
 		), rows))
 
 	@staticmethod
 	def select_range(
-		participant: Participant,
-		data_source: DataSource,
+		participant: models.Participant,
+		data_source: models.DataSource,
 		from_ts: dt,
 		till_ts: dt
 	) -> List[DataRecord]:
@@ -245,20 +156,24 @@ class DataTable:
 
 		DataTable.__connect()
 		cur: pg2_extras.DictCursor = DataTable.con.cursor(cursor_factory=pg2_extras.DictRow)
-		cur.execute(f'select data_source_id, ts, val from data.{table_name} where data_source_id = %s and ts >= %s and ts < %s', (data_source, from_ts, till_ts))
+		cur.execute(f'select data_source_id, ts, val from data.{table_name} where data_source_id = %s and ts >= %s and ts < %s', (  # noqa
+			data_source,
+			from_ts,
+			till_ts
+		))
 		rows = cur.fetchall()
 		cur.close()
 
 		return list(map(lambda row: DataRecord(
-			data_source=find_data_source(data_source_id=row.data_source_id),
+			data_source=models.DataSource.get_by_id(pk=row.data_source_id),
 			ts=row.ts,
 			val=row.val
 		), rows))
 
 	@staticmethod
 	def dump_to_file(
-		participant: Participant,
-		data_source: Optional[DataSource]
+		participant: models.Participant,
+		data_source: Optional[models.DataSource]
 	) -> str:
 		"""
 		Dumps content of a particular DataTable into a downloadable file
@@ -284,6 +199,50 @@ class DataTable:
 		return res
 
 
-# connect and prepare tables
-db.connect()
-db.create_tables([User, Campaign, DataSource, Supervisor, Participant, HourlyStats])
+class DataSourceStats:
+	def __init__(
+		self,
+		data_source: models.DataSource,
+		amount_of_samples: Optional[int] = 0,
+		last_sync_time: Optional[dt] = dt.fromtimestamp(0)
+	):
+		self.data_source: models.DataSource = notnull(data_source)
+		self.amount_of_samples: int = notnull(amount_of_samples)
+		self.last_sync_time: dt = notnull(last_sync_time)
+
+
+class ParticipantStats:
+	def __init__(self, participant: models.Participant):
+		self.participant: models.Participant = notnull(participant)
+
+		self.per_data_source_stats: OrderedDict[models.DataSource, DataSourceStats] = collections.OrderedDict()
+		self.amount_of_data: int = 0
+		self.last_sync_ts: dt = dt.fromtimestamp(0)
+		data_sources: List[models.DataSource] = models.CampaignDataSources.select().where(models.CampaignDataSources.campaign == participant.campaign)
+		for data_source in sorted(data_sources, key=lambda x: x.name):
+			latest_hourly_stats: models.HourlyStats = models.HourlyStats.select().where(
+				models.HourlyStats.participant == participant,
+				models.HourlyStats.data_source == data_source
+			).order_by(
+				models.HourlyStats.ts,
+				models.HourlyStats.ts.desc()
+			).limit(1)
+
+			self.per_data_source_stats[data_source] = DataSourceStats(
+				data_source=data_source,
+				amount_of_samples=latest_hourly_stats.amounts,
+				last_sync_time=latest_hourly_stats.ts
+			) if latest_hourly_stats else DataSourceStats(data_source=data_source)
+
+			self.amount_of_data += self.per_data_source_stats[data_source].amount_of_samples
+			self.last_sync_ts = max(self.last_sync_ts, self.per_data_source_stats[data_source].last_sync_time)
+
+		then = self.join_ts.replace(hour=0, minute=0, second=0, microsecond=0) + td(days=1)  # noqa
+		now = dt.now().replace(hour=0, minute=0, second=0, microsecond=0) + td(days=1)
+		self.participation_duration: int = (now - then).days
+
+	def __getitem__(self, data_source: models.DataSource) -> DataSourceStats:
+		if data_source in self.per_data_source_stats:
+			return self.per_data_source_stats[data_source]
+		else:
+			return DataSourceStats(data_source=data_source)

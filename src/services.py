@@ -2,8 +2,9 @@ from datetime import datetime as dt
 from typing import Dict, List, Optional
 
 # app
-from orm.models import User, Campaign, Participant, DataTable, Supervisor, DataSource
-from orm.selectors import is_participant, is_supervisor, find_data_source
+from src.data import models
+from src.data import wrappers
+from src.selectors import is_participant, is_supervisor, find_data_source
 from utils import notnull
 
 
@@ -11,7 +12,7 @@ def create_user(
 	email: str,
 	name: str,
 	session_key: str
-) -> User:
+) -> models.User:
 	"""
 	Creates a user object in database and returns User object
 	:param email: email of new user
@@ -20,7 +21,7 @@ def create_user(
 	:return:
 	"""
 
-	return User.create(
+	return models.User.create(
 		email=notnull(email),
 		name=notnull(name),
 		session_key=notnull(session_key)
@@ -28,7 +29,7 @@ def create_user(
 
 
 def set_user_session_key(
-	user: User,
+	user: models.User,
 	new_session_key: str
 ) -> None:
 	"""
@@ -43,8 +44,8 @@ def set_user_session_key(
 
 
 def add_participant_to_campaign(
-	add_user: User,
-	campaign: Campaign
+	add_user: models.User,
+	campaign: models.Campaign
 ) -> bool:
 	"""
 	Binds user with campaign, making a participant.
@@ -60,13 +61,13 @@ def add_participant_to_campaign(
 	): return False
 
 	# 1. bind the user to campaign
-	participant = Participant.create(
+	participant = models.Participant.create(
 		campaign=campaign,
 		user=add_user
 	)
 
 	# 2. create a new data table for the participant
-	DataTable.create(
+	wrappers.DataTable.create(
 		participant=participant
 	)
 
@@ -74,61 +75,60 @@ def add_participant_to_campaign(
 
 
 def add_supervisor_to_campaign(
-	add_user: User,
-	supervisor: Supervisor,
+	new_user: models.User,
+	supervisor: models.Supervisor,
 ) -> bool:
 	"""
 	Binds user with campaign, making a supervisor.
-	:param add_user: User object to be bound to a campaign as a supervisor
+	:param new_user: User object to be bound to a campaign as a supervisor
 	:param supervisor: Supervisor object that has reference to campaign (initially the owner is the first supervisor)
 	:return: whether user has been bound (as supervisor)
 	"""
 
-	campaign: Campaign = notnull(supervisor).campaign
+	campaign: models.Campaign = notnull(supervisor).campaign
 
 	if is_supervisor(
-		user=notnull(add_user),
+		user=notnull(new_user),
 		campaign=notnull(campaign)
 	): return False
 
-	Supervisor.create(
+	models.Supervisor.create(
 		campaign=campaign,
-		user=add_user
+		user=new_user
 	)
 	return True
 
 
 def remove_supervisor_from_campaign(
-	supervisor: Supervisor
+	oldSupervisor: models.Supervisor
 ) -> None:
 	"""
 	Unbinds a (supervisor) user from campaign.
-	:param supervisor: supervisor representing the binding between a user and a campaign.
+	:param oldSupervisor: supervisor representing the binding between a user and a campaign.
 	:return: None
 	"""
 
-	campaign: Campaign = notnull(supervisor).campaign
-	if supervisor.user != campaign.owner: supervisor.delete()
+	campaign: models.Campaign = notnull(oldSupervisor).campaign
+	if oldSupervisor.user != campaign.owner: oldSupervisor.delete()
 
 
 def create_campaign(
-	owner: User,
+	owner: models.User,
 	name: str,
 	start_ts: dt,
 	end_ts: dt
-) -> Campaign:
+) -> models.Campaign:
 	"""
 	Creates a campaign object in database and returns Campaign object
 	:param owner: owner (User instance) of the new campaign
 	:param name: title of the campaign
-	:param notes: notes on the campaign
 	:param start_ts: when campaign starts
 	:param end_ts: when campaign ends
 	:return: newly created Campaign instance
 	"""
 
 	# 1. create a campaign
-	campaign = Campaign.create(
+	campaign = models.Campaign.create(
 		owner=notnull(owner),
 		name=notnull(name),
 		start_ts=notnull(start_ts),
@@ -136,7 +136,7 @@ def create_campaign(
 	)
 
 	# 2. add owner as a supervisor
-	Supervisor.create(
+	models.Supervisor.create(
 		campaign=campaign,
 		user=owner
 	)
@@ -145,7 +145,7 @@ def create_campaign(
 
 
 def update_campaign(
-	supervisor: Supervisor,
+	supervisor: models.Supervisor,
 	name: str,
 	start_ts: dt,
 	end_ts: dt
@@ -154,13 +154,12 @@ def update_campaign(
 	Update parameters of a campaign object in the database.
 	:param supervisor: supervisor of the campaign (includes reference to user and campaign)
 	:param name: title of the campaign
-	:param notes: notes on the campaign
 	:param start_ts: when campaign starts
 	:param end_ts: when campaign ends
 	:return: newly created Campaign instance
 	"""
 
-	campaign: Campaign = notnull(supervisor).campaign
+	campaign: models.Campaign = notnull(supervisor).campaign
 	campaign.name = notnull(name)
 	campaign.start_ts = notnull(start_ts)
 	campaign.end_ts = notnull(end_ts)
@@ -168,7 +167,7 @@ def update_campaign(
 
 
 def delete_campaign(
-	supervisor: Supervisor
+	supervisor: models.Supervisor
 ) -> None:
 	"""
 	Delete a campaign - must only be called if campaign's owner makes the call.
@@ -176,7 +175,7 @@ def delete_campaign(
 	:return: None
 	"""
 
-	campaign: Campaign = notnull(supervisor).campaign
+	campaign: models.Campaign = notnull(supervisor).campaign
 	if supervisor.user == campaign.owner: campaign.delete()
 
 
@@ -191,19 +190,19 @@ def create_data_source(
 	:return: None
 	"""
 
-	if DataSource.get_or_none(
+	if models.DataSource.get_or_none(
 		name=notnull(name)
 	): return
 
-	DataSource.create(
+	models.DataSource.create(
 		name=name,
 		icon_name=notnull(icon_name)
 	)
 
 
 def create_data_record(
-	participant: Participant,
-	data_source: DataSource,
+	participant: models.Participant,
+	data_source: models.DataSource,
 	ts: dt,
 	val: Dict
 ) -> None:
@@ -216,7 +215,7 @@ def create_data_record(
 	:return: None
 	"""
 
-	DataTable.insert(
+	wrappers.DataTable.insert(
 		participant=participant,
 		data_source=data_source,
 		ts=ts,
@@ -225,7 +224,7 @@ def create_data_record(
 
 
 def create_data_records(
-	participant: Participant,
+	participant: models.Participant,
 	data_source_ids: List[int],
 	tss: List[dt],
 	vals: List[Dict]
@@ -239,10 +238,10 @@ def create_data_records(
 	:return: None
 	"""
 
-	data_sources: Dict[int, DataSource] = dict()
+	data_sources: Dict[int, models.DataSource] = dict()
 	for ts, data_source_id, val in zip(tss, data_source_ids, vals):
 		if data_source_id not in data_sources:
-			db_data_source = find_data_source(data_source_id=data_source_id)
+			db_data_source = find_data_source(data_source_id=data_source_id, name=None)
 			if db_data_source is None: continue
 			data_sources[data_source_id] = db_data_source
 		create_data_record(
@@ -254,8 +253,8 @@ def create_data_records(
 
 
 def dump_data(
-	participant: Participant,
-	data_source: Optional[DataSource]
+	participant: models.Participant,
+	data_source: Optional[models.DataSource]
 ) -> str:
 	"""
 	Dumps content of a particular DataTable into a downloadable file
@@ -264,7 +263,7 @@ def dump_data(
 	:return: path to the downloadable file
 	"""
 
-	return DataTable.dump_to_file(
+	return wrappers.DataTable.dump_to_file(
 		participant=notnull(participant),
 		data_source=data_source
 	)
