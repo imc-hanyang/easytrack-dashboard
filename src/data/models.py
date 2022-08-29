@@ -28,7 +28,7 @@ class User(Model):
 	class Meta:
 		database = db
 		db_table = 'user'
-		schema = 'et'
+		schema = 'easytrack'
 
 
 class Campaign(Model):
@@ -41,7 +41,7 @@ class Campaign(Model):
 	class Meta:
 		database = db
 		db_table = 'campaign'
-		schema = 'et'
+		schema = 'easytrack'
 
 
 class DataSource(Model):
@@ -52,7 +52,7 @@ class DataSource(Model):
 	class Meta:
 		database = db
 		db_table = 'data_source'
-		schema = 'et'
+		schema = 'easytrack'
 
 
 class CampaignDataSources(Model):
@@ -62,7 +62,7 @@ class CampaignDataSources(Model):
 	class Meta:
 		database = db
 		db_table = 'campaign_data_source'
-		schema = 'et'
+		schema = 'easytrack'
 		indexes = (
 			(('campaign', 'data_source'), True),  # unique together
 		)
@@ -75,7 +75,7 @@ class Supervisor(Model):
 	class Meta:
 		database = db
 		db_table = 'supervisor'
-		schema = 'et'
+		schema = 'easytrack'
 		indexes = (
 			(('campaign', 'user'), True),  # unique together
 		)
@@ -90,7 +90,7 @@ class Participant(Model):
 	class Meta:
 		database = db
 		db_table = 'participant'
-		schema = 'et'
+		schema = 'easytrack'
 
 		indexes = (
 			(('campaign', 'user'), True),  # unique together
@@ -106,7 +106,7 @@ class HourlyStats(Model):
 	class Meta:
 		database = db
 		db_table = 'hourly_stats'
-		schema = 'et'
+		schema = 'easytrack'
 
 		indexes = (
 			(('participant', 'data_source', 'ts'), True),  # unique together
