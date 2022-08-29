@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 from src.data import models
 from src.data import wrappers
 from src.selectors import is_participant, is_supervisor, find_data_source
-from utils import notnull
+from src.utils import notnull
 
 
 def create_user(

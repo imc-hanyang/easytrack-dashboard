@@ -89,8 +89,12 @@ class Participant(Model):
 
 	class Meta:
 		database = db
-		db_table = 'campaign_participant_stats'
+		db_table = 'participant'
 		schema = 'et'
+
+		indexes = (
+			(('campaign', 'user'), True),  # unique together
+		)
 
 
 class HourlyStats(Model):
@@ -101,7 +105,7 @@ class HourlyStats(Model):
 
 	class Meta:
 		database = db
-		db_table = 'campaign_participant_stats'
+		db_table = 'hourly_stats'
 		schema = 'et'
 
 		indexes = (
@@ -111,4 +115,12 @@ class HourlyStats(Model):
 
 # connect and prepare tables
 db.connect()
-db.create_tables([User, Campaign, DataSource, Supervisor, Participant, HourlyStats])
+db.create_tables([
+	User,
+	Campaign,
+	DataSource,
+	CampaignDataSources,
+	Supervisor,
+	Participant,
+	HourlyStats
+])

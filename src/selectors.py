@@ -5,7 +5,7 @@ from datetime import timedelta as td
 # app
 from src.data import models
 from src.data import wrappers
-from utils import notnull
+from src.utils import notnull
 
 
 def find_user(
