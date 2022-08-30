@@ -6,56 +6,62 @@ import os
 load_dotenv()
 
 DEBUG = True
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-INTERNAL_IPS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1'
+]
+INTERNAL_IPS = [
+    '127.0.0.1',
+    'localhost'
+]
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 INSTALLED_APPS = [
-	'django.contrib.admin',
-	'django.contrib.auth',
-	'django.contrib.sites',
-	'django.contrib.contenttypes',
-	'django.contrib.sessions',
-	'django.contrib.messages',
-	'django.contrib.staticfiles',
-	'django.contrib.humanize',
-	'social_django',
-	'dashboard',
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.sites',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'django.contrib.humanize',
+    'social_django',
+    'dashboard',
 ]
 MIDDLEWARE = [
-	'django.middleware.security.SecurityMiddleware',
-	'django.contrib.sessions.middleware.SessionMiddleware',
-	'django.middleware.common.CommonMiddleware',
-	'django.middleware.csrf.CsrfViewMiddleware',
-	'django.contrib.auth.middleware.AuthenticationMiddleware',
-	'django.contrib.messages.middleware.MessageMiddleware',
-	'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 TEMPLATES = [
-	{
-		'BACKEND': 'django.template.backends.django.DjangoTemplates',
-		'DIRS': [os.path.join(BASE_DIR, 'templates')],
-		'APP_DIRS': True,
-		'OPTIONS': {
-			'context_processors': [
-				'django.template.context_processors.debug',
-				'django.template.context_processors.request',
-				'django.contrib.auth.context_processors.auth',
-				'django.contrib.messages.context_processors.messages',
-			],
-		},
-	},
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
 ]
 DATABASES = {
-	'default': {
-		'ENGINE': 'django.db.backends.postgresql_psycopg2',
-		'HOST': notnull(os.getenv(key='DATABASE_HOST')),
-		'PORT': int(notnull(os.getenv(key='DATABASE_PORT'))),
-		'NAME': notnull(os.getenv(key='DATABASE_NAME')),
-		'USER': notnull(os.getenv(key='DATABASE_USER')),
-		'PASSWORD': notnull(os.getenv(key='DATABASE_PASSWORD'))
-	}
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'HOST': notnull(os.getenv(key='DATABASE_HOST')),
+        'PORT': int(notnull(os.getenv(key='DATABASE_PORT'))),
+        'NAME': notnull(os.getenv(key='DATABASE_NAME')),
+        'USER': notnull(os.getenv(key='DATABASE_USER')),
+        'PASSWORD': notnull(os.getenv(key='DATABASE_PASSWORD'))
+    }
 }
 
 LANGUAGE_CODE = 'en-us'
@@ -69,10 +75,10 @@ STATIC_URL = '/static/'
 # STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
 
 AUTHENTICATION_BACKENDS = (
-	# 'social_core.backends.google.GoogleOpenId',
-	'django.contrib.auth.backends.ModelBackend',
-	'social_core.backends.google_openidconnect.GoogleOpenIdConnect',
-	'social_core.backends.google.GoogleOAuth2',
+    # 'social_core.backends.google.GoogleOpenId',
+    'django.contrib.auth.backends.ModelBackend',
+    'social_core.backends.google_openidconnect.GoogleOpenIdConnect',
+    'social_core.backends.google.GoogleOAuth2',
 )
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = "79296265957-khvficocpqmhajv3c5obiljo2k95jqt3.apps.googleusercontent.com"
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = "u4SAx6SzM7vBwXYAYCW0OGLe"

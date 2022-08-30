@@ -5,22 +5,22 @@ name = "pypi"
 
 [packages]
 django = "*"
+djangorestframework = "*"
+gunicorn = "*"
+peewee = "*"
 plotly = "*"
+psycopg2-binary = "*"
 python-dateutil = "*"
 python-social-auth = "*"
 python3-openid = "*"
+python-dotenv = "*"
+python-jose = "*"
 requests-oauthlib = "*"
 social = "*"
 social-auth-app-django = "*"
 social-auth-core = "*"
-python-jose = "*"
-psycopg2-binary = "*"
-python-dotenv = "*"
-peewee = "*"
-djangorestframework = "*"
-psycopg2 = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.9"
+python_version = "3.10"
