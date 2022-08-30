@@ -38,9 +38,9 @@ def is_participant(
 	:return: true if user is campaign's participant, false if not
 	"""
 
-	return models.Participant.select().where(
-		campaign=notnull(campaign),
-		user=notnull(user)
+	return models.Participant.filter(
+		campaign=notnull(campaign).id,
+		user=notnull(user).id
 	).exists()
 
 
@@ -55,9 +55,9 @@ def is_supervisor(
 	:return: true if user is campaign's supervisor, false if not
 	"""
 
-	return models.Supervisor.select().where(
-		campaign=notnull(campaign),
-		user=notnull(user)
+	return models.Supervisor.filter(
+		campaign=campaign,
+		user=user
 	).exists()
 
 
@@ -104,7 +104,9 @@ def get_campaign_participants(
 	:return: list of campaign's participants
 	"""
 
-	return models.Participant.select().where(models.Participant.campaign == notnull(campaign))
+	return models.Participant.filter(
+		campaign=notnull(campaign)
+	)
 
 
 def get_campaign_participants_count(
@@ -116,7 +118,9 @@ def get_campaign_participants_count(
 	:return: number of campaign's participants
 	"""
 
-	return models.Participant.select().where(models.Participant.campaign == notnull(campaign)).count()
+	return models.Participant.filter(
+		campaign=notnull(campaign)
+	).count()
 
 
 def get_campaign_supervisors(
@@ -128,7 +132,9 @@ def get_campaign_supervisors(
 	:return: list of campaign's supervisors
 	"""
 
-	return models.Supervisor.select().where(models.Supervisor.campaign == notnull(campaign))
+	return models.Supervisor.filter(
+		campaign=notnull(campaign)
+	)
 
 
 def get_campaign(
@@ -154,7 +160,9 @@ def get_supervisor_campaigns(
 
 	return list(map(
 		lambda supervisor: supervisor.campaign,
-		models.Supervisor.select().where(models.Supervisor.user == notnull(user))
+		models.Supervisor.filter(
+			user=notnull(user)
+		)
 	))
 
 
@@ -197,7 +205,9 @@ def get_campaign_data_sources(
 
 	return list(map(
 		lambda campaign_data_source: campaign_data_source.data_source,
-		models.CampaignDataSources.select().where(models.CampaignDataSources.campaign == notnull(campaign))
+		models.CampaignDataSources.filter(
+			campaign=notnull(campaign)
+		)
 	))
 
 
@@ -274,17 +284,16 @@ def get_filtered_amount_of_data(
 	:return: amount of samples in the range with specified filters
 	"""
 
-	current: models.HourlyStats = models.HourlyStats.select().where(
-		models.HourlyStats.participant == participant,
-		models.HourlyStats.data_source == data_source,
-		models.HourlyStats.ts == till_ts.replace(minute=0, second=0, microsecond=0) + td(hours=1)
+	current: models.HourlyStats = models.HourlyStats.get_or_none(
+		participant=notnull(participant),
+		data_source=notnull(data_source),
+		ts=till_ts.replace(minute=0, second=0, microsecond=0) + td(hours=1)
 	)
 	if not current:
-		current: models.HourlyStats = models.HourlyStats.select().where(
-			models.HourlyStats.participant == participant,
-			models.HourlyStats.data_source == data_source,
+		current: models.HourlyStats = models.HourlyStats.filter(
+			participant=notnull(participant),
+			data_source=notnull(data_source),
 		).order_by(
-			models.HourlyStats.ts,
 			models.HourlyStats.ts.desc()
 		).limit(1)
 
@@ -293,10 +302,10 @@ def get_filtered_amount_of_data(
 	if data_source not in current:
 		return 0
 
-	back_then: models.HourlyStats = models.HourlyStats.select().where(
-		models.HourlyStats.participant == participant,
-		models.HourlyStats.data_source == data_source,
-		models.HourlyStats.ts == from_ts.replace(minute=0, second=0, microsecond=0)
+	back_then: models.HourlyStats = models.HourlyStats.filter(
+		participant=notnull(participant),
+		data_source=notnull(data_source),
+		ts=from_ts.replace(minute=0, second=0, microsecond=0)
 	)
 	if not back_then or data_source not in back_then:
 		if data_source in current.amounts:
@@ -305,3 +314,20 @@ def get_filtered_amount_of_data(
 			return 0
 
 	return current.amounts[data_source] - back_then.amounts[data_source]
+
+
+def is_campaign_data_source(
+	campaign: models.Campaign,
+	data_source: models.Campaign
+) -> None:
+	"""
+	Checks if data source is being used by a campaign
+	:param campaign: the campaign being queried
+	:param data_source: data source being queried
+	:return: whether data source is used by campaign
+	"""
+
+	return models.CampaignDataSources.filter(
+		campaign=campaign,
+		data_source=data_source
+	).exists()

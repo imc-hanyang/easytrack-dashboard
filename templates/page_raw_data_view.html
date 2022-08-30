@@ -3,7 +3,7 @@
     {% load static %}
     {% if records|length == 0 %}
         <h2>[ NO DATA / EMPTY ]</h2>
-        <img src="{% static 'sad_icon.png' %}" alt="Under construction">
+        <img src="{% static 'failure.png' %}" alt="Under construction">
     {% else %}
         <form id="view_data_submit_form" action="{% url 'view_data' %}" method="get" onsubmit="onFormSubmit()">
             <input type="number" name="campaign_id" value="{{ request.GET.campaign_id }}" hidden>

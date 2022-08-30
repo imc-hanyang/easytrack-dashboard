@@ -16,6 +16,7 @@ ENV CPPFLAGS '-I/usr/local/opt/libpq/include'
 ENV PKG_CONFIG_PATH '/usr/local/opt/libpq/lib/pkgconfig'
 
 # pipenv
+RUN pip install --upgrade pip
 RUN pip install pipenv
 COPY Pipfile .
 RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy --skip-lock

@@ -5,123 +5,139 @@ from datetime import timedelta as td
 from peewee import AutoField, TextField, ForeignKeyField, TimestampField
 from peewee import Model, PostgresqlDatabase
 from playhouse.postgres_ext import BinaryJSONField
+import psycopg2 as pg2
+import psycopg2.extras as pg2_extras
 
 # app
 from dashboard.settings import DATABASES as DB
 
 db = PostgresqlDatabase(
-    database=DB["default"]["NAME"],
-    host=DB["default"]["HOST"],
-    port=DB["default"]["PORT"],
-    user=DB["default"]["USER"],
-    password=DB["default"]["PASSWORD"]
+	host=DB["default"]["HOST"],
+	port=DB["default"]["PORT"],
+	database=DB["default"]["NAME"],
+	user=DB["default"]["USER"],
+	password=DB["default"]["PASSWORD"]
 )
 
 
 class User(Model):
-    id = AutoField(primary_key=True)
-    email = TextField(unique=True)
-    name = TextField()
-    session_key = TextField(default=None)
-    tag = TextField(default=None)
+	id = AutoField(primary_key=True, null=False)
+	email = TextField(unique=True, null=False)
+	name = TextField(null=False)
+	session_key = TextField(default=None, null=True)
+	tag = TextField(default=None, null=True)
 
-    class Meta:
-        database = db
-        db_table = 'user'
-        schema = 'core'
+	class Meta:
+		database = db
+		db_table = 'user'
+		schema = 'core'
 
 
 class Campaign(Model):
-    id = AutoField(primary_key=True)
-    owner = ForeignKeyField(User, on_delete='CASCADE')
-    name = TextField()
-    start_ts = TimestampField(default=dt.now)
-    end_ts = TimestampField(default=lambda: dt.now() + td(days=90))
+	id = AutoField(primary_key=True, null=False)
+	owner = ForeignKeyField(User, on_delete='CASCADE', null=False)
+	name = TextField(null=False)
+	start_ts = TimestampField(default=dt.now, null=False)
+	end_ts = TimestampField(default=lambda: dt.now() + td(days=90), null=False)
 
-    class Meta:
-        database = db
-        db_table = 'campaign'
-        schema = 'core'
+	class Meta:
+		database = db
+		db_table = 'campaign'
+		schema = 'core'
 
 
 class DataSource(Model):
-    id = AutoField(primary_key=True)
-    name = TextField(unique=True)
-    icon_name = TextField()
+	id = AutoField(primary_key=True, null=False)
+	name = TextField(unique=True, null=False)
+	icon_name = TextField(null=False)
 
-    class Meta:
-        database = db
-        db_table = 'data_source'
-        schema = 'core'
+	class Meta:
+		database = db
+		db_table = 'data_source'
+		schema = 'core'
 
 
 class CampaignDataSources(Model):
-    campaign = ForeignKeyField(Campaign, on_delete='CASCADE')
-    data_source = ForeignKeyField(DataSource, on_delete='CASCADE')
+	campaign = ForeignKeyField(Campaign, on_delete='CASCADE', null=False)
+	data_source = ForeignKeyField(DataSource, on_delete='CASCADE', null=False)
 
-    class Meta:
-        database = db
-        db_table = 'campaign_data_source'
-        schema = 'core'
-        indexes = (
-            (('campaign', 'data_source'), True),  # unique together
-        )
+	class Meta:
+		database = db
+		db_table = 'campaign_data_source'
+		schema = 'core'
+		indexes = (
+			(('campaign', 'data_source'), True),  # unique together
+		)
 
 
 class Supervisor(Model):
-    campaign = ForeignKeyField(Campaign, on_delete='CASCADE')
-    user = ForeignKeyField(User, on_delete='CASCADE')
+	campaign = ForeignKeyField(Campaign, on_delete='CASCADE', null=False)
+	user = ForeignKeyField(User, on_delete='CASCADE', null=False)
 
-    class Meta:
-        database = db
-        db_table = 'supervisor'
-        schema = 'core'
-        indexes = (
-            (('campaign', 'user'), True),  # unique together
-        )
+	class Meta:
+		database = db
+		db_table = 'supervisor'
+		schema = 'core'
+		indexes = (
+			(('campaign', 'user'), True),  # unique together
+		)
 
 
 class Participant(Model):
-    campaign = ForeignKeyField(Campaign, on_delete='CASCADE')
-    user = ForeignKeyField(User, on_delete='CASCADE')
-    join_ts = TimestampField(default=dt.now)
-    last_heartbeat_ts = TimestampField(default=dt.now)
+	campaign = ForeignKeyField(Campaign, on_delete='CASCADE', null=False)
+	user = ForeignKeyField(User, on_delete='CASCADE', null=False)
+	join_ts = TimestampField(default=dt.now, null=False)
+	last_heartbeat_ts = TimestampField(default=dt.now, null=False)
 
-    class Meta:
-        database = db
-        db_table = 'participant'
-        schema = 'core'
+	class Meta:
+		database = db
+		db_table = 'participant'
+		schema = 'core'
 
-        indexes = (
-            (('campaign', 'user'), True),  # unique together
-        )
+		indexes = (
+			(('campaign', 'user'), True),  # unique together
+		)
 
 
 class HourlyStats(Model):
-    participant = ForeignKeyField(Participant, on_delete='CASCADE')
-    data_source = ForeignKeyField(DataSource, on_delete='CASCADE')
-    ts = TimestampField()
-    amounts = BinaryJSONField()
+	participant = ForeignKeyField(Participant, on_delete='CASCADE', null=False)
+	data_source = ForeignKeyField(DataSource, on_delete='CASCADE', null=False)
+	ts = TimestampField(null=False)
+	amounts = BinaryJSONField()
 
-    class Meta:
-        database = db
-        db_table = 'hourly_stats'
-        schema = 'core'
+	class Meta:
+		database = db
+		db_table = 'hourly_stats'
+		schema = 'core'
 
-        indexes = (
-            (('participant', 'data_source'), False),  # selection by participant and/or data source
-            (('ts',), False),  # selection by timestamp
-        )
+		indexes = (
+			(('participant', 'data_source'), False),  # selection by participant and/or data source
+			(('ts',), False),  # selection by timestamp
+		)
 
 
+# create schema if necessary
+conn = pg2.connect(
+	host=DB["default"]["HOST"],
+	port=DB["default"]["PORT"],
+	dbname=DB["default"]["NAME"],
+	user=DB["default"]["USER"],
+	password=DB["default"]["PASSWORD"]
+)
+cur: pg2_extras.DictCursor = conn.cursor(cursor_factory=pg2_extras.DictCursor)
+cur.execute('create schema if not exists core')
+cur.execute('create schema if not exists data')
+cur.execute('create schema if not exists geoplan')
+conn.commit()
+conn.close()
 # connect and prepare tables
 db.connect()
 db.create_tables([
-    User,
-    Campaign,
-    DataSource,
-    CampaignDataSources,
-    Supervisor,
-    Participant,
-    HourlyStats
+	User,
+	Campaign,
+	DataSource,
+	CampaignDataSources,
+	Supervisor,
+	Participant,
+	HourlyStats
 ])

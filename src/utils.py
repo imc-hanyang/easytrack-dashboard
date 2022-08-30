@@ -1,7 +1,8 @@
 from datetime import datetime as dt
+import dateutil.parser as parser
 from os.path import join, exists
-from os import mkdir, chmod
 from typing import Any, List
+from os import mkdir, chmod
 import tempfile
 import hashlib
 import time
@@ -69,6 +70,18 @@ def ts2web(
 	return ts.strftime('%Y-%m-%dT%H:%M')
 
 
+def parse_ts(
+	s: str
+) -> dt:
+	"""
+	Converts a given string to a datetime object
+	:param s: timestamp in string format
+	:return: datetime object
+	"""
+
+	return parser.parse(f'{s} +0900')
+
+
 def is_numeric(
 	s: str,
 	floating=False
@@ -125,3 +138,14 @@ def get_temp_filepath(
 	fp.close()
 
 	return res
+
+
+def is_web_ts(
+	s: str
+) -> bool:
+	"""
+	Checks if the provided string has a valid datetime format
+	:param s: string being validated
+	:return: whether string is a valid timestsamp
+	"""
+	return bool(re.search(pattern=r'^\d{4}-\d{1,2}-\d{1,2}T\d{1,2}:\d{1,2}$', string=s))

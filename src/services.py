@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 # app
 from src.data import models
 from src.data import wrappers
-from src.selectors import is_participant, is_supervisor, find_data_source
+from src import selectors as slc
 from src.utils import notnull
 
 
@@ -55,7 +55,7 @@ def add_participant_to_campaign(
 	:return: whether user has been bound
 	"""
 
-	if is_participant(
+	if slc.is_participant(
 		user=notnull(add_user),
 		campaign=notnull(campaign)
 	): return False
@@ -87,7 +87,7 @@ def add_supervisor_to_campaign(
 
 	campaign: models.Campaign = notnull(supervisor).campaign
 
-	if is_supervisor(
+	if slc.is_supervisor(
 		user=notnull(new_user),
 		campaign=notnull(campaign)
 	): return False
@@ -116,7 +116,8 @@ def create_campaign(
 	owner: models.User,
 	name: str,
 	start_ts: dt,
-	end_ts: dt
+	end_ts: dt,
+	data_sources: List[models.DataSource]
 ) -> models.Campaign:
 	"""
 	Creates a campaign object in database and returns Campaign object
@@ -124,6 +125,7 @@ def create_campaign(
 	:param name: title of the campaign
 	:param start_ts: when campaign starts
 	:param end_ts: when campaign ends
+	:param data_sources: data sources of the campaign
 	:return: newly created Campaign instance
 	"""
 
@@ -131,8 +133,8 @@ def create_campaign(
 	campaign = models.Campaign.create(
 		owner=notnull(owner),
 		name=notnull(name),
-		start_ts=notnull(start_ts),
-		end_ts=notnull(end_ts)
+		start_ts=start_ts,
+		end_ts=end_ts
 	)
 
 	# 2. add owner as a supervisor
@@ -141,14 +143,66 @@ def create_campaign(
 		user=owner
 	)
 
+	# 3. add campaign's data sources
+	for data_source in data_sources:
+		add_campaign_data_source(
+			campaign=campaign,
+			data_source=data_source
+		)
+
 	return campaign
+
+
+def add_campaign_data_source(
+	campaign: models.Campaign,
+	data_source: models.Campaign
+) -> None:
+	"""
+	Adds the data source to campaign
+	:param campaign: the campaign to add data source to
+	:param data_source: data source being added
+	:return: None
+	"""
+
+	if slc.is_campaign_data_source(
+		campaign=campaign,
+		data_source=data_source
+	): return
+
+	models.CampaignDataSources.create(
+		campaign=campaign,
+		data_source=data_source
+	)
+
+
+def remove_campaign_data_source(
+	campaign: models.Campaign,
+	data_source: models.Campaign
+) -> None:
+	"""
+	Removes the data source from campaign
+	:param campaign: the campaign to remove data source from
+	:param data_source: data source being removed
+	:return: None
+	"""
+
+	if not slc.is_campaign_data_source(
+		campaign=campaign,
+		data_source=data_source
+	): return
+
+	for campaign_data_source in models.CampaignDataSources.filter(
+		campaign=campaign,
+		data_source=data_source
+	): campaign_data_source.delete_instance()
 
 
 def update_campaign(
 	supervisor: models.Supervisor,
 	name: str,
 	start_ts: dt,
-	end_ts: dt
+	end_ts: dt,
+	data_sources: List[models.DataSource]
 ) -> None:
 	"""
 	Update parameters of a campaign object in the database.
@@ -156,6 +210,7 @@ def update_campaign(
 	:param name: title of the campaign
 	:param start_ts: when campaign starts
 	:param end_ts: when campaign ends
+	:param data_sources: list of data sources
 	:return: newly created Campaign instance
 	"""
 
@@ -164,6 +219,21 @@ def update_campaign(
 	campaign.start_ts = notnull(start_ts)
 	campaign.end_ts = notnull(end_ts)
 	campaign.save()
+
+	olds = set(slc.get_campaign_data_sources(campaign=campaign))
+	news = set(data_sources)
+
+	for old in olds.difference(news):
+		remove_campaign_data_source(
+			campaign=campaign,
+			data_source=old
+		)
+
+	for new in news.difference(olds):
+		add_campaign_data_source(
+			campaign=campaign,
+			data_source=new
+		)
 
 
 def delete_campaign(
@@ -176,25 +246,26 @@ def delete_campaign(
 	"""
 
 	campaign: models.Campaign = notnull(supervisor).campaign
-	if supervisor.user == campaign.owner: campaign.delete()
+	if supervisor.user == campaign.owner: campaign.delete_instance()
 
 
 def create_data_source(
 	name: str,
 	icon_name: str
-) -> None:
+) -> models.DataSource:
 	"""
 	Creates a data source (if not exists)
 	:param name: name of the data source
 	:param icon_name: icon of the data source
-	:return: None
+	:return: newly created data source (or the one with matching name)
 	"""
 
-	if models.DataSource.get_or_none(
+	data_source = models.DataSource.get_or_none(
 		name=notnull(name)
-	): return
+	)
+	if data_source: return data_source
 
-	models.DataSource.create(
+	return models.DataSource.create(
 		name=name,
 		icon_name=notnull(icon_name)
 	)
@@ -241,7 +312,7 @@ def create_data_records(
 	data_sources: Dict[int, models.DataSource] = dict()
 	for ts, data_source_id, val in zip(tss, data_source_ids, vals):
 		if data_source_id not in data_sources:
-			db_data_source = find_data_source(data_source_id=data_source_id, name=None)
+			db_data_source = slc.find_data_source(data_source_id=data_source_id, name=None)
 			if db_data_source is None: continue
 			data_sources[data_source_id] = db_data_source
 		create_data_record(
