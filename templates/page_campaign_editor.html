@@ -37,12 +37,9 @@
             {% if edit_mode %}
                 {# edit an existing campaign #}
                 {% for data_source in data_sources %}
-                    <tr data-source="DATA_SOURCE_{{ data_source.name }}" class="{% if data_source.selected %}selected_data_source{% else %}data_source{% endif %}">
+                    <tr data-source="{{ data_source.name }}" class="{% if data_source.selected %}selected_data_source{% else %}data_source{% endif %}">
                         <td><input type="checkbox" name="DATA_SOURCE_{{ data_source.name }}" {% if data_source.selected %}checked{% endif %}></td>
-                        <td>
-                            <input type="text" name="icon_name_{{ data_source.name }}" value="{{ data_source.icon_name }}" hidden>
-                            <img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt="">
-                        </td>
+                        <td><img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt=""></td>
                         <td>{{ data_source.name }}</td>
                     </tr>
                 {% endfor %}
@@ -51,10 +48,7 @@
                 {% for data_source in data_sources %}
                     <tr data-source="{{ data_source.name }}" class="data_source">
                         <td><input type="checkbox" name="DATA_SOURCE_{{ data_source.name }}"></td>
-                        <td>
-                            <input type="text" name="icon_name_{{ data_source.name }}" value="{{ data_source.icon_name }}" hidden>
-                            <img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt="">
-                        </td>
+                        <td><img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt=""></td>
                         <td>{{ data_source.name }}</td>
                     </tr>
                 {% endfor %}
@@ -125,7 +119,7 @@
             cell = row.insertCell();
             cell.innerHTML = '<input type="text" value="miscellaneous.png" name="icon_name_' + name + '" hidden><img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/data_source/new.png" alt="">';
             cell = row.insertCell();
-            cell.innerHTML = '<input type="text" value="' + name + '" name="' + name + '" class="jsonField" disabled>';
+            cell.innerHTML = '<input type="text" value="' + name + '" class="jsonField" disabled>';
 
             const rows = document.querySelectorAll("tr[new-data-source]");
             rows.forEach(row => {

@@ -12,6 +12,8 @@ import re
 
 # libs
 from wsgiref.util import FileWrapper
+
+import requests
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout as dj_logout
@@ -440,20 +442,20 @@ def handle_campaign_editor(request):
 					return redirect(to='campaigns-list')
 			else:
 				# edit for a new campaign
-				data_sources = []
+				new_data_sources = []
 				for data_source in db_data_sources:
-					data_sources += [{
+					new_data_sources += [{
 						'name': data_source.name,
 						'icon_name': data_source.icon_name
 					}]
-				data_sources.sort(key=lambda key: key['name'])
+				new_data_sources.sort(key=lambda key: key['name'])
 				now_ts = utils.now_dt()
 				return render(
 					request=request,
 					template_name='../templates/page_campaign_editor.html',
 					context={
 						'title': 'New campaign',
-						'data_sources': data_sources,
+						'data_sources': new_data_sources,
 						'now_time': utils.ts2web(ts=now_ts),
 						'after_month_time': utils.ts2web(ts=now_ts + td(days=30)),
 					}
@@ -465,19 +467,31 @@ def handle_campaign_editor(request):
 				if not campaign or not slc.is_supervisor(user=user, campaign=campaign): return redirect(to='campaigns-list')
 
 			if 'name' in request.POST and all(map(lambda s: s in request.POST and utils.is_web_ts(request.POST[s]), ['startTime', 'endTime'])):
-				DATA_SOURCE_KEY = 'DATA_SOURCE_'
-				data_source_names = map(
-					lambda s: s[len(DATA_SOURCE_KEY):],
-					filter(lambda s: re.fullmatch(rf'{DATA_SOURCE_KEY}\w+', s), request.POST)
+				key = 'DATA_SOURCE_'
+				new_data_source_names: List[str] = list(map(
+					lambda s: s[len(key):],
+					filter(lambda s: re.fullmatch(rf'^{key}\w+$', s), request.POST)
+				))
+				icon_names = map(
+					lambda x: x[6:-1],
+					re.findall(
+						pattern=r'href="\w+\.png"',
+						string=requests.get(f'http://{os.getenv(key="STATIC_HOST")}:{os.getenv(key="STATIC_PORT")}/images/data_source/').text
+					)
 				)
-				data_sources: List[models.DataSource] = list()
-				for name in data_source_names:
-					icon = request.POST[f'icon_name_{name}']
-					data_sources.append(svc.create_data_source(
+				new_data_sources: List[models.DataSource] = list()
+				for name in new_data_source_names:
+					new_icon_name = 'miscellaneous.png'
+					for sub in re.findall('[a-zA-Z]+', name):
+						for icon_name in icon_names:
+							if sub.lower() in icon_name:
+								new_icon_name = icon_name
+								break
+					new_data_sources.append(svc.create_data_source(
 						name=name,
-						icon_name=icon
+						icon_name=new_icon_name
 					))
-				if len(data_sources) == 0:
+				if len(new_data_sources) == 0:
 					return redirect(to='campaigns-list')
 				campaign_name = str(request.POST['name'])
 				campaign_start_ts = utils.parse_ts(request.POST['startTime'])
@@ -489,7 +503,7 @@ def handle_campaign_editor(request):
 						name=campaign_name,
 						start_ts=campaign_start_ts,
 						end_ts=campaign_end_ts,
-						data_sources=data_sources
+						data_sources=new_data_sources
 					)
 				elif not campaign:
 					svc.create_campaign(
@@ -497,7 +511,7 @@ def handle_campaign_editor(request):
 						name=campaign_name,
 						start_ts=campaign_start_ts,
 						end_ts=campaign_end_ts,
-						data_sources=data_sources
+						data_sources=new_data_sources
 					)
 				return redirect(to='campaigns-list')
 			else:
