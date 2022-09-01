@@ -18,20 +18,12 @@
             </tr>
             <tr>
                 <td><label for="startTime">Start time</label>
-                <td><input name="startTime" id="startTime" type="datetime-local" required value="{% if edit_mode %}{{ campaign_start_time }}{% endif %}"/></td>
+                <td><input name="startTime" id="startTime" type="datetime-local" required value="{% if edit_mode %}{{ campaign_start_time }}{% else %}{{ now_time }}{% endif %}"/></td>
             </tr>
             <tr>
                 <td><label for="endTime">End time</label>
-                <td><input name="endTime" id="endTime" type="datetime-local" required value="{% if edit_mode %}{{ campaign_end_time }}{% endif %}"/></td>
+                <td><input name="endTime" id="endTime" type="datetime-local" required value="{% if edit_mode %}{{ campaign_end_time }}{% else %}{{ after_month_time }}{% endif %}"/></td>
             </tr>
-            {% if not edit_mode %}
-                <tr>
-                    <td>
-                        <input id="showDataSourceTableCheckbox" type="checkbox" onclick="showDataSourceTableClicked();" checked>
-                        <label for="showDataSourceTableCheckbox">Data submitted by users<br>(i.e. not by researchers)</label>
-                    </td>
-                </tr>
-            {% endif %}
         </table>
 
         <a id="addRowButton" onclick="onInsertNewRowClick()">NEW DATA SOURCE</a>
@@ -45,11 +37,11 @@
             {% if edit_mode %}
                 {# edit an existing campaign #}
                 {% for data_source in data_sources %}
-                    <tr data-source="{{ data_source.name }}" class="{% if data_source.selected %}selected_data_source{% else %}data_source{% endif %}">
-                        <td><input type="checkbox" name="{{ data_source.name }}" {% if data_source.selected %}checked{% endif %}></td>
+                    <tr data-source="DATA_SOURCE_{{ data_source.name }}" class="{% if data_source.selected %}selected_data_source{% else %}data_source{% endif %}">
+                        <td><input type="checkbox" name="DATA_SOURCE_{{ data_source.name }}" {% if data_source.selected %}checked{% endif %}></td>
                         <td>
                             <input type="text" name="icon_name_{{ data_source.name }}" value="{{ data_source.icon_name }}" hidden>
-                            <img src="http://{{ request.get_host }}/static/{{ data_source.icon_name }}" alt="">
+                            <img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt="">
                         </td>
                         <td>{{ data_source.name }}</td>
                     </tr>
@@ -58,10 +50,10 @@
                 {# edit for a new campaign #}
                 {% for data_source in data_sources %}
                     <tr data-source="{{ data_source.name }}" class="data_source">
-                        <td><input type="checkbox" name="{{ data_source.name }}"></td>
+                        <td><input type="checkbox" name="DATA_SOURCE_{{ data_source.name }}"></td>
                         <td>
                             <input type="text" name="icon_name_{{ data_source.name }}" value="{{ data_source.icon_name }}" hidden>
-                            <img src="http://{{ request.get_host }}/static/{{ data_source.icon_name }}" alt="">
+                            <img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt="">
                         </td>
                         <td>{{ data_source.name }}</td>
                     </tr>
@@ -122,7 +114,7 @@
         }
 
         function onInsertNewRowClick() {
-            let name = 'NEW_DATA_SOURCE_' + counter;
+            let name = 'DATA_SOURCE_' + counter;
 
             let row = dataSourceTable.insertRow(1);
             row.style.cursor = "pointer";
@@ -131,7 +123,7 @@
             let cell = row.insertCell();
             cell.innerHTML = '<input type="checkbox" name="' + name + '">';
             cell = row.insertCell();
-            cell.innerHTML = '<input type="text" value="miscellaneous-data-sources.png" name="icon_name_' + name + '" hidden><img src="http://{{ request.get_host }}/static/new.png" alt="">';
+            cell.innerHTML = '<input type="text" value="miscellaneous.png" name="icon_name_' + name + '" hidden><img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/data_source/new.png" alt="">';
             cell = row.insertCell();
             cell.innerHTML = '<input type="text" value="' + name + '" name="' + name + '" class="jsonField" disabled>';
 
@@ -150,7 +142,7 @@
                             checkBox.name = checkBox.getAttribute("defaultName");
                             iconInput.name = "icon_name_" + checkBox.getAttribute("defaultName");
                         }
-                        checkBox.name = "data_source_name_" + nameInput.value;
+                        checkBox.name = "DATA_SOURCE_" + nameInput.value;
                         iconInput.name = "icon_name_" + nameInput.value;
                     });
                     nameInput.setAttribute("listenerIsSet", 'true');
@@ -191,16 +183,6 @@
                 }
             };
             counter++;
-        }
-
-        function showDataSourceTableClicked() {
-            if ($('#showDataSourceTableCheckbox').is(':checked')) {
-                $('#addRowButton').show()
-                $('#dataSourceTable').show()
-            } else {
-                $('#addRowButton').hide()
-                $('#dataSourceTable').hide()
-            }
         }
     </script>
 

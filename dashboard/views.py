@@ -24,10 +24,9 @@ from django.http import HttpResponse
 
 # app
 from dashboard.models import EnhancedDataSource
-from src import selectors as slc
-from src import services as svc
-from src.data import models
-from src import utils
+from boilerplate import selectors as slc, models
+from boilerplate import services as svc
+from boilerplate import utils
 
 
 def handle_google_verification(request):
@@ -445,15 +444,18 @@ def handle_campaign_editor(request):
 				for data_source in db_data_sources:
 					data_sources += [{
 						'name': data_source.name,
-						'icon_name': data_source.iconName
+						'icon_name': data_source.icon_name
 					}]
 				data_sources.sort(key=lambda key: key['name'])
+				now_ts = utils.now_dt()
 				return render(
 					request=request,
 					template_name='../templates/page_campaign_editor.html',
 					context={
 						'title': 'New campaign',
-						'data_source': data_sources,
+						'data_sources': data_sources,
+						'now_time': utils.ts2web(ts=now_ts),
+						'after_month_time': utils.ts2web(ts=now_ts + td(days=30)),
 					}
 				)
 		elif request.method == 'POST':
@@ -463,9 +465,10 @@ def handle_campaign_editor(request):
 				if not campaign or not slc.is_supervisor(user=user, campaign=campaign): return redirect(to='campaigns-list')
 
 			if 'name' in request.POST and all(map(lambda s: s in request.POST and utils.is_web_ts(request.POST[s]), ['startTime', 'endTime'])):
+				DATA_SOURCE_KEY = 'DATA_SOURCE_'
 				data_source_names = map(
-					lambda s: request.POST[s],
-					filter(lambda s: re.fullmatch(r'NEW_DATA_SOURCE_\d+', s), request.POST)
+					lambda s: s[len(DATA_SOURCE_KEY):],
+					filter(lambda s: re.fullmatch(rf'{DATA_SOURCE_KEY}\w+', s), request.POST)
 				)
 				data_sources: List[models.DataSource] = list()
 				for name in data_source_names:
@@ -474,6 +477,8 @@ def handle_campaign_editor(request):
 						name=name,
 						icon_name=icon
 					))
+				if len(data_sources) == 0:
+					return redirect(to='campaigns-list')
 				campaign_name = str(request.POST['name'])
 				campaign_start_ts = utils.parse_ts(request.POST['startTime'])
 				campaign_end_ts = utils.parse_ts(request.POST['endTime'])

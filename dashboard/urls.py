@@ -1,4 +1,3 @@
-from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import path, include
 from django.contrib import admin
 from dashboard import views
@@ -33,4 +32,3 @@ urlpatterns = [
 	path('google43e44b3701ba10c8.html', views.handle_google_verification),
 	path('google-auth/', include('social_django.urls', namespace='social')),
 ]
-urlpatterns += staticfiles_urlpatterns()

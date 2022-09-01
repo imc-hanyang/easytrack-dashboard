@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% block content %}
-    {% load static %}
     <h3>Data sources ({{ data_sources|length }})</h3>
     <table>
         <tr>
@@ -15,7 +14,7 @@
                 <td class="data_source_name_column">{{ data_source.name }}</td>
                 <td class="download_csv_column">
                     <a title="Download {{ data_source.name }} dataset at this state" href="{% url 'download-csv' %}?campaign_id={{ campaign.id }}&data_source_id={{ data_source.data_source_id }}">
-                        <img class="action_button_green" src="{% static '../images/button/download.png' %}" alt="download">
+                        <img class="action_button_green" src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/button/download.png" alt="download">
                     </a>
                 </td>
             </tr>
@@ -26,7 +25,7 @@
                 <td class="data_source_name_column">ALL</td>
                 <td class="download_csv_column">
                     <a title="Download the dataset at this state" href="{% url 'download-csv' %}?campaign_id={{ campaign.id }}">
-                        <img class="action_button_green" src="{% static '../images/button/download.png' %}" alt="download">
+                        <img class="action_button_green" src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/button/download.png" alt="download">
                     </a>
                 </td>
             </tr>
@@ -49,7 +48,7 @@
                 <td class="user_email_column">{{ participant.email }}</td>
                 <td class="download_csv_column">
                     <a title="Download {{ participant.email }} dataset at this state" href="{% url 'download-csv' %}?campaign_id={{ campaign.id }}&user_id={{ participant.id }}">
-                        <img class="action_button_green" src="{% static '../images/button/download.png' %}" alt="download">
+                        <img class="action_button_green" src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/button/download.png" alt="download">
                     </a>
                 </td>
             </tr>
@@ -61,7 +60,7 @@
                 <td class="user_email_column">ALL</td>
                 <td class="download_csv_column">
                     <a title="Download the dataset at this state" href="{% url 'download-csv' %}?campaign_id={{ campaign.id }}">
-                        <img class="action_button_green" src="{% static '../images/button/download.png' %}" alt="download">
+                        <img class="action_button_green" src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/button/download.png" alt="download">
                     </a>
                 </td>
             </tr>

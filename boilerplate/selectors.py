@@ -3,9 +3,8 @@ from datetime import datetime as dt
 from datetime import timedelta as td
 
 # app
-from src.data import models
-from src.data import wrappers
-from src.utils import notnull
+from boilerplate import wrappers, models
+from boilerplate.utils import notnull
 
 
 def find_user(

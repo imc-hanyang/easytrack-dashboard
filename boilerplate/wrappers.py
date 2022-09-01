@@ -9,8 +9,8 @@ import psycopg2.extras as pg2_extras
 from psycopg2.extras import _connection as PostgresConnection  # noqa
 
 # app
-from src.data import models
-from src.utils import notnull, get_temp_filepath
+from boilerplate import models
+from boilerplate.utils import notnull, get_temp_filepath
 from dashboard.settings import DATABASES as DB
 
 

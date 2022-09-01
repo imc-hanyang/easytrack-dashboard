@@ -2,10 +2,8 @@ from datetime import datetime as dt
 from typing import Dict, List, Optional
 
 # app
-from src.data import models
-from src.data import wrappers
-from src import selectors as slc
-from src.utils import notnull
+from boilerplate import selectors as slc, wrappers, models
+from boilerplate.utils import notnull
 
 
 def create_user(

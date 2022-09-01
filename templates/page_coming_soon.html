@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% block content %}
-    {% load static %}
     <h2>This functionality is coming soon =)</h2>
-    <img src="{% static '../images/others/construction.png' %}" alt="Under construction">
+    <img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/others/construction.png" alt="Under construction">
 {% endblock %}

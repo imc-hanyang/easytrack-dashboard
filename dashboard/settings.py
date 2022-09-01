@@ -1,4 +1,4 @@
-from src.utils import notnull
+from boilerplate.utils import notnull
 from dotenv import load_dotenv
 import os
 
@@ -25,7 +25,6 @@ INSTALLED_APPS = [
 	'django.contrib.contenttypes',
 	'django.contrib.sessions',
 	'django.contrib.messages',
-	'django.contrib.staticfiles',
 	'django.contrib.humanize',
 	'social_django',
 	'dashboard',
@@ -50,6 +49,7 @@ TEMPLATES = [
 				'django.template.context_processors.request',
 				'django.contrib.auth.context_processors.auth',
 				'django.contrib.messages.context_processors.messages',
+				'dashboard.context_processors.export_vars',
 			],
 		},
 	},
@@ -70,14 +70,6 @@ TIME_ZONE = 'Asia/Seoul'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
-
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-STATIC_URL = '/static/'
-STATICFILES_DIRS = (
-	os.path.join(BASE_DIR, 'images', 'button'),
-	os.path.join(BASE_DIR, 'images', 'data_source'),
-	os.path.join(BASE_DIR, 'images', 'others'),
-)
 
 AUTHENTICATION_BACKENDS = (
 	# 'social_core.backends.google.GoogleOpenId',
