@@ -102,12 +102,16 @@ def param_check(
 	return True
 
 
+def now_dt() -> dt:
+	return dt.now()
+
+
 def now_us() -> int:
-	return int(time.time() * 1000 * 1000)
+	return int(now_dt().timestamp() * 1000 * 1000)
 
 
 def now_ms() -> int:
-	return int(now_us() / 1000)
+	return int(now_dt().timestamp() * 1000)
 
 
 def md5(
