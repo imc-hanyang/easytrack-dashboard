@@ -1,5 +1,5 @@
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from django.urls import path, re_path, include
+from django.urls import path, include
 from django.contrib import admin
 from dashboard import views
 
@@ -9,7 +9,7 @@ urlpatterns = [
 	path('logout/', views.handle_logout_api, name='logout'),
 	path('dev_login/', views.handle_development_login_api, name='dev-login'),
 
-	# dashboard navigation
+	# easytrack navigation
 	path('', views.handle_campaigns_list, name='campaigns-list'),
 	path('campaign/', views.handle_participants_list, name='participants-list'),
 	path('participant/', views.handle_participants_data_list, name='participant'),

@@ -31,7 +31,7 @@ from src import utils
 
 
 def handle_google_verification(request):
-	return render(request=request, template_name='google43e44b3701ba10c8.html')
+	return render(request=request, template_name='../templates/google43e44b3701ba10c8.html')
 
 
 @require_http_methods(['GET', 'POST'])
@@ -54,7 +54,7 @@ def handle_login_api(request):
 			return redirect(to='campaigns-list')
 	return render(
 		request=request,
-		template_name='page_authentication.html',
+		template_name='../templates/page_authentication.html',
 		context={'title': 'Authentication'}
 	)
 
@@ -146,7 +146,7 @@ def handle_campaigns_list(request):
 
 		return render(
 			request=request,
-			template_name='page_campaigns.html',
+			template_name='../templates/page_campaigns.html',
 			context={
 				'title': "%s's campaigns" % request.user.get_full_name(),
 				'my_campaigns': campaigns,
@@ -172,14 +172,14 @@ def handle_participants_list(request):
 				if len(data_sources) == 0:
 					return redirect(to='https://drive.google.com/drive/folders/1rho3la0tfZI_YLp4Lkq8MwuLF7K9SNIS')
 				else:
-					# campaign dashboard page
+					# campaign easytrack page
 					participants = list()
 					for p in slc.get_campaign_participants(campaign=campaign):
 						stats = slc.get_participants_latest_stats(participant=p)
 						participants.append({
-							'id': p.id,
-							'name': p.name,
-							'email': p.email,
+							'id': p.user.id,
+							'name': p.user.name,
+							'email': p.user.email,
 							'day_no': stats.participation_duration,
 							'amount_of_data': stats.amount_of_data,
 							'last_heartbeat_time': p.last_heartbeat_ts,
@@ -188,7 +188,7 @@ def handle_participants_list(request):
 					participants.sort(key=lambda x: x['id'])
 					return render(
 						request=request,
-						template_name='page_campaign_participants.html',
+						template_name='../templates/page_campaign_participants.html',
 						context={
 							'title': "%s's participants" % campaign.name,
 							'campaign': campaign,
@@ -252,7 +252,7 @@ def handle_researchers_list(request):
 
 						return render(
 							request=request,
-							template_name='page_campaign_researchers.html',
+							template_name='../templates/page_campaign_researchers.html',
 							context={
 								'title': "%s's researchers" % campaign.name,
 								'campaign': campaign,
@@ -305,12 +305,12 @@ def handle_participants_data_list(request):
 						data_sources.sort(key=lambda x: x['name'])
 						return render(
 							request=request,
-							template_name='page_participant_data_sources_stats.html',
+							template_name='../templates/page_participant_data_sources_stats.html',
 							context={
 								'title': f'Data submitted by {participant_user.email} (ID = {participant_user.id})',
 								'campaign': campaign,
 								'participant': participant_user,
-								'data_source': data_sources,
+								'data_sources': data_sources,
 								'id': user.id,
 								'session_key': user.session_key
 							}
@@ -380,11 +380,11 @@ def handle_raw_samples_list(request):
 								from_timestamp = record.ts
 							return render(
 								request=request,
-								template_name='page_raw_data_view.html',
+								template_name='../templates/page_raw_data_view.html',
 								context={
 									'title': data_source.name,
 									'records': records,
-									'from_timestamp': from_timestamp,
+									'from_timestamp': utils.ts2int(from_timestamp),
 									'id': user.id,
 									'session_key': user.session_key
 								}
@@ -427,7 +427,7 @@ def handle_campaign_editor(request):
 					data_source_infos.sort(key=lambda key: key['name'])
 					return render(
 						request=request,
-						template_name='page_campaign_editor.html',
+						template_name='../templates/page_campaign_editor.html',
 						context={
 							'edit_mode': True,
 							'title': '"%s" Campaign Editor' % campaign.name,
@@ -450,7 +450,7 @@ def handle_campaign_editor(request):
 				data_sources.sort(key=lambda key: key['name'])
 				return render(
 					request=request,
-					template_name='page_campaign_editor.html',
+					template_name='../templates/page_campaign_editor.html',
 					context={
 						'title': 'New campaign',
 						'data_source': data_sources,
@@ -575,7 +575,7 @@ def handle_easytrack_monitor(request):
 
 						return render(
 							request=request,
-							template_name='easytrack_monitor.html',
+							template_name='../templates/easytrack_monitor.html',
 							context={
 								'title': 'EasyTracker',
 								'campaign': campaign,
@@ -630,7 +630,7 @@ def handle_easytrack_monitor(request):
 
 							return render(
 								request=request,
-								template_name='easytrack_monitor.html',
+								template_name='../templates/easytrack_monitor.html',
 								context={
 									'title': 'EasyTracker',
 									'campaign': campaign,
@@ -670,7 +670,7 @@ def handle_dataset_info(request):
 				db_participants.sort(key=lambda db_participant: db_participant.id)
 				return render(
 					request=request,
-					template_name='page_dataset_configs.html',
+					template_name='../templates/page_dataset_configs.html',
 					context={
 						'campaign': campaign,
 						'data_sources': campaign_data_sources,

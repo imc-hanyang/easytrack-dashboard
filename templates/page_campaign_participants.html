@@ -21,10 +21,10 @@
                 <td class="sync_time_column">{{ participant.last_sync_time }}</td>
                 <td class="action_column">
                     <a class="action_button" href="{% url 'download-data' %}?campaign_id={{ campaign.id }}&participant_id={{ participant.id }}">
-                        <img title="Download raw data" class="action_button_green" src="{% static 'download.png' %}" alt="download">
+                        <img title="Download raw data" class="action_button_green" src="{% static '../images/button/download.png' %}" alt="download">
                     </a>
                     <a class="action_button" href="{% url 'easytrack-monitor' %}?campaign_id={{ campaign.id }}&participant_id={{ participant.id }}&data_source_name=all">
-                        <img title="Monitor the participant {{ participant.email }}" class="action_button_green" src="{% static 'monitor.png' %}" alt="EasyTrack monitor">
+                        <img title="Monitor the participant {{ participant.email }}" class="action_button_green" src="{% static '../images/button/monitor.png' %}" alt="EasyTrack monitor">
                     </a>
                 </td>
             </tr>

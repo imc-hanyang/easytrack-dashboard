@@ -34,7 +34,7 @@ WORKDIR /home/easytrack
 USER easytrack
 
 # install app
-COPY . .
+COPY .. .
 
 # migrate database
 RUN python manage.py makemigrations

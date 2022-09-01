@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict
+from typing import List, Optional
 from datetime import datetime as dt
 from datetime import timedelta as td
 
