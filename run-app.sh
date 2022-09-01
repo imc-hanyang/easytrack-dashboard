@@ -1,6 +1,7 @@
-# load environment
-export $(cat .env | xargs)
+## run docker
+#export $(cat .env | xargs)
+#docker build . -t dashboard
+#docker run dashboard -p 80:80 -d
 
-# build and launch app
-docker build . -t dashboard
-docker run dashboard -p 80:80 -d
+# run local gunicorn
+gunicorn -c gunicorn_config.py dashboard.wsgi

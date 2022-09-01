@@ -32,12 +32,14 @@ class DataTable:
 	@staticmethod
 	def __connect():
 		if DataTable.con: return
+
 		DataTable.con = pg2.connect(
 			database=DB["default"]["NAME"],
 			host=DB["default"]["HOST"],
 			port=DB["default"]["PORT"],
 			user=DB["default"]["USER"],
-			password=DB["default"]["PASSWORD"]
+			password=DB["default"]["PASSWORD"],
+			options="-c search_path=data"
 		)
 
 	@staticmethod

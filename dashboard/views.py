@@ -242,30 +242,26 @@ def handle_researchers_list(request):
 						else:
 							return redirect(to='campaigns-list')
 
-						# return new list of campaign's supervisors
-						supervisors = list()
-						for s in slc.get_campaign_supervisors(campaign=campaign):
-							supervisors.append({
-								'name': s.user.name,
-								'email': s.user.email
-							})
-						supervisors.sort(key=lambda x: x['name'])
+				# return new list of campaign's supervisors
+				supervisors = list()
+				for s in slc.get_campaign_supervisors(campaign=campaign):
+					supervisors.append({
+						'name': s.user.name,
+						'email': s.user.email
+					})
+				supervisors.sort(key=lambda x: x['name'])
 
-						return render(
-							request=request,
-							template_name='../templates/page_campaign_researchers.html',
-							context={
-								'title': "%s's researchers" % campaign.name,
-								'campaign': campaign,
-								'researchers': supervisors,
-								'id': user.id,
-								'session_key': user.session_key
-							}
-						)
-					else:
-						return redirect(to='campaigns-list')
-				else:
-					return redirect(to='campaigns-list')
+				return render(
+					request=request,
+					template_name='../templates/page_campaign_researchers.html',
+					context={
+						'title': "%s's researchers" % campaign.name,
+						'campaign': campaign,
+						'researchers': supervisors,
+						'id': user.id,
+						'session_key': user.session_key
+					}
+				)
 			else:
 				return redirect(to='campaigns-list')
 		else:
