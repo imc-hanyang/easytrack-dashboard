@@ -27,7 +27,7 @@
                     <td>{{ record.row }}</td>
                     <td>{{ record.timestamp }}</td>
                     {% if record.value|length <= 512 %}
-                        <td title="{{ record.value }}">{{ record.value|truncatechars:256 }}</td>
+                        <td title="{{ record.value }}"><a style="text-decoration: none; color: black" href="{{ record.link }}">{{ record.value|truncatechars:256 }}</a></td>
                     {% else %}
                         <td>[ <i>{{ record.value|length }} byte data record</i> ]</td>
                     {% endif %}
