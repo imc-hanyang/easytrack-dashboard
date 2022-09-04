@@ -34,14 +34,18 @@ WORKDIR /home/easytrack
 USER easytrack
 
 # install app
-COPY .. .
+COPY . .
 
 # migrate database
-RUN python manage.py makemigrations
-RUN python manage.py migrate
+# RUN python manage.py makemigrations
+# RUN python manage.py migrate
 
 # open app port
-EXPOSE 80
+EXPOSE $APP_PORT
 
 # run web server
-CMD ["python", "manage.py", "runserver", "0:80"]
+ENTRYPOINT ["python", "manage.py", "runserver"]
+CMD ["0.0.0.0:8000"]
+
+#ENTRYPOINT ["gunicorn", 'dashboard.wsgi']
+#CMD ['-c', 'gunicorn_config.py']

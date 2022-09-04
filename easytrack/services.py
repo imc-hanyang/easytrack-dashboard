@@ -2,8 +2,8 @@ from datetime import datetime as dt
 from typing import Dict, List, Optional
 
 # app
-from boilerplate import selectors as slc, wrappers, models
-from boilerplate.utils import notnull
+from easytrack import selectors as slc, wrappers, models
+from easytrack.utils import notnull
 
 
 def create_user(

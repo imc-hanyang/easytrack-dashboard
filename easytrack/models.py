@@ -1,22 +1,26 @@
 from datetime import datetime as dt
 from datetime import timedelta as td
+from os import getenv
 
 # libs
 from peewee import AutoField, TextField, ForeignKeyField, TimestampField
 from peewee import Model, PostgresqlDatabase
-from playhouse.postgres_ext import BinaryJSONField
+from playhouse.postgres_ext import IntegerField
 import psycopg2 as pg2
 import psycopg2.extras as pg2_extras
 
 # app
-from dashboard.settings import DATABASES as DB
+from easytrack.utils import notnull
+import dotenv
+
+dotenv.load_dotenv()
 
 db = PostgresqlDatabase(
-	host=DB["default"]["HOST"],
-	port=DB["default"]["PORT"],
-	database=DB["default"]["NAME"],
-	user=DB["default"]["USER"],
-	password=DB["default"]["PASSWORD"]
+	host=notnull(getenv(key='POSTGRES_HOST')),
+	port=notnull(getenv(key='POSTGRES_PORT')),
+	database=notnull(getenv(key='POSTGRES_DBNAME')),
+	user=notnull(getenv(key='POSTGRES_USER')),
+	password=notnull(getenv(key='POSTGRES_PASSWORD'))
 )
 
 
@@ -103,7 +107,7 @@ class HourlyStats(Model):
 	participant = ForeignKeyField(Participant, on_delete='CASCADE', null=False)
 	data_source = ForeignKeyField(DataSource, on_delete='CASCADE', null=False)
 	ts = TimestampField(null=False)
-	amounts = BinaryJSONField()
+	amount = IntegerField(default=0)
 
 	class Meta:
 		database = db
@@ -118,11 +122,11 @@ class HourlyStats(Model):
 
 # create schema if necessary
 conn = pg2.connect(
-	host=DB["default"]["HOST"],
-	port=DB["default"]["PORT"],
-	dbname=DB["default"]["NAME"],
-	user=DB["default"]["USER"],
-	password=DB["default"]["PASSWORD"]
+	host=notnull(getenv(key='POSTGRES_HOST')),
+	port=notnull(getenv(key='POSTGRES_PORT')),
+	dbname=notnull(getenv(key='POSTGRES_DBNAME')),
+	user=notnull(getenv(key='POSTGRES_USER')),
+	password=notnull(getenv(key='POSTGRES_PASSWORD'))
 )
 cur: pg2_extras.DictCursor = conn.cursor(cursor_factory=pg2_extras.DictCursor)
 cur.execute('create schema if not exists core')

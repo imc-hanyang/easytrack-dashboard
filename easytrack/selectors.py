@@ -3,8 +3,8 @@ from datetime import datetime as dt
 from datetime import timedelta as td
 
 # app
-from boilerplate import wrappers, models
-from boilerplate.utils import notnull
+from easytrack import wrappers, models
+from easytrack.utils import notnull
 
 
 def find_user(
@@ -38,8 +38,8 @@ def is_participant(
 	"""
 
 	return models.Participant.filter(
-		campaign=notnull(campaign).id,
-		user=notnull(user).id
+		campaign=notnull(campaign),
+		user=notnull(user)
 	).exists()
 
 
@@ -296,23 +296,22 @@ def get_filtered_amount_of_data(
 			models.HourlyStats.ts.desc()
 		).limit(1)
 
-		if not current: return 0
-
-	if data_source not in current:
-		return 0
+		if not current:
+			return 0
+		else:
+			current = list(current)[0]
 
 	back_then: models.HourlyStats = models.HourlyStats.filter(
 		participant=notnull(participant),
 		data_source=notnull(data_source),
 		ts=from_ts.replace(minute=0, second=0, microsecond=0)
 	)
-	if not back_then or data_source not in back_then:
-		if data_source in current.amounts:
-			return current.amounts[data_source]
-		else:
-			return 0
+	if not back_then:
+		return 0
+	else:
+		back_then = list(back_then)[0]
 
-	return current.amounts[data_source] - back_then.amounts[data_source]
+	return current.amount - back_then.amount
 
 
 def is_campaign_data_source(

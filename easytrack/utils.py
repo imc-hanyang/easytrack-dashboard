@@ -5,8 +5,9 @@ from typing import Any, List
 from os import mkdir, chmod
 import tempfile
 import hashlib
-import time
 import re
+
+import pytz
 
 
 def replacenull(
@@ -153,3 +154,11 @@ def is_web_ts(
 	:return: whether string is a valid timestsamp
 	"""
 	return bool(re.search(pattern=r'^\d{4}-\d{1,2}-\d{1,2}T\d{1,2}:\d{1,2}$', string=s))
+
+
+def strip_tz(
+	ts: dt
+) -> dt:
+	if ts.tzinfo:
+		return ts.astimezone(tz=pytz.utc).replace(tzinfo=None)
+	return ts

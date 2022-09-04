@@ -1,4 +1,4 @@
-from boilerplate.utils import notnull
+from easytrack.utils import notnull
 from os import getenv
 
 

@@ -1,5 +1,6 @@
-from boilerplate.utils import notnull
+from easytrack.utils import notnull
 from dotenv import load_dotenv
+import socket
 import os
 
 # .env file
@@ -13,7 +14,7 @@ ALLOWED_HOSTS = [
 INTERNAL_IPS = [
 	'127.0.0.1',
 	'localhost',
-	'172.17.0.1'
+	socket.gethostbyname(socket.gethostname())[:-1] + '1'
 ]
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -57,11 +58,11 @@ TEMPLATES = [
 DATABASES = {
 	'default': {
 		'ENGINE': 'django.db.backends.postgresql_psycopg2',
-		'HOST': notnull(os.getenv(key='DATABASE_HOST')),
-		'PORT': int(notnull(os.getenv(key='DATABASE_PORT'))),
-		'NAME': notnull(os.getenv(key='DATABASE_NAME')),
-		'USER': notnull(os.getenv(key='DATABASE_USER')),
-		'PASSWORD': notnull(os.getenv(key='DATABASE_PASSWORD'))
+		'HOST': notnull(os.getenv(key='POSTGRES_HOST')),
+		'PORT': int(notnull(os.getenv(key='POSTGRES_PORT'))),
+		'NAME': notnull(os.getenv(key='POSTGRES_DBNAME')),
+		'USER': notnull(os.getenv(key='POSTGRES_USER')),
+		'PASSWORD': notnull(os.getenv(key='POSTGRES_PASSWORD'))
 	}
 }
 

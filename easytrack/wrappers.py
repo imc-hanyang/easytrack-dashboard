@@ -2,6 +2,8 @@ from datetime import datetime as dt
 from datetime import timedelta as td
 from typing import Dict, List, Optional, OrderedDict
 import collections
+from os import getenv
+import pytz
 
 # libs
 import psycopg2 as pg2
@@ -9,9 +11,8 @@ import psycopg2.extras as pg2_extras
 from psycopg2.extras import _connection as PostgresConnection  # noqa
 
 # app
-from boilerplate import models
-from boilerplate.utils import notnull, get_temp_filepath
-from dashboard.settings import DATABASES as DB
+from easytrack import models
+from easytrack.utils import notnull, get_temp_filepath, strip_tz
 
 
 class DataRecord:
@@ -22,7 +23,7 @@ class DataRecord:
 		val: Dict
 	):
 		self.data_source: models.DataSource = notnull(data_source)
-		self.ts: dt = notnull(ts)
+		self.ts: dt = notnull(strip_tz(ts))
 		self.val: Dict = notnull(val)
 
 
@@ -34,11 +35,11 @@ class DataTable:
 		if DataTable.con: return
 
 		DataTable.con = pg2.connect(
-			database=DB["default"]["NAME"],
-			host=DB["default"]["HOST"],
-			port=DB["default"]["PORT"],
-			user=DB["default"]["USER"],
-			password=DB["default"]["PASSWORD"],
+			host=notnull(getenv(key='POSTGRES_HOST')),
+			port=notnull(getenv(key='POSTGRES_PORT')),
+			dbname=notnull(getenv(key='POSTGRES_DBNAME')),
+			user=notnull(getenv(key='POSTGRES_USER')),
+			password=notnull(getenv(key='POSTGRES_PASSWORD')),
 			options="-c search_path=data"
 		)
 
@@ -99,7 +100,7 @@ class DataTable:
 		cur = DataTable.con.cursor()
 		cur.execute(f'insert into data.{table_name}(data_source_id, ts, val) values (%s,%s,%s)', (  # noqa
 			data_source,
-			ts,
+			strip_tz(ts),
 			pg2_extras.Json(val)
 		))
 		cur.close()
@@ -127,7 +128,7 @@ class DataTable:
 		cur: pg2_extras.DictCursor = DataTable.con.cursor(cursor_factory=pg2_extras.DictCursor)
 		cur.execute(f'select data_source_id, ts, val from data.{table_name} where data_source_id = %s and ts >= %s limit %s', (  # noqa
 			data_source.id,
-			from_ts,
+			strip_tz(from_ts),
 			limit
 		))
 		rows = cur.fetchall()
@@ -161,8 +162,8 @@ class DataTable:
 		cur: pg2_extras.DictCursor = DataTable.con.cursor(cursor_factory=pg2_extras.DictCursor)
 		cur.execute(f'select data_source_id, ts, val from data.{table_name} where data_source_id = %s and ts >= %s and ts < %s', (  # noqa
 			data_source.id,
-			from_ts,
-			till_ts
+			strip_tz(from_ts),
+			strip_tz(till_ts)
 		))
 		rows = cur.fetchall()
 		cur.close()
@@ -172,6 +173,61 @@ class DataTable:
 			ts=row.ts,
 			val=row.val
 		), rows))
+
+	@staticmethod
+	def select_count(
+		participant: models.Participant,
+		data_source: models.DataSource,
+		from_ts: dt,
+		till_ts: dt
+	) -> int:
+		"""
+		Retrieves amount of filtered data based on provided range (start and end timestamps)
+		:param participant: participant that has refernece to user and campaign
+		:param data_source: type of data to retrieve
+		:param from_ts: starting timestamp
+		:param till_ts: ending timestamp
+		:return: amount of data records within the range
+		"""
+
+		table_name = DataTable.__get_name(participant=participant)
+
+		DataTable.__connect()
+		cur: pg2_extras.DictCursor = DataTable.con.cursor(cursor_factory=pg2_extras.DictCursor)
+
+		cur.execute(f'select count(*) from data.{table_name} where data_source_id = %s and ts >= %s and ts < %s', (  # noqa
+			data_source.id,
+			strip_tz(from_ts),
+			strip_tz(till_ts)
+		))
+		res = cur.fetchone()[0]
+		cur.close()
+
+		return res
+
+	@staticmethod
+	def select_first_ts(
+		participant: models.Participant,
+		data_source: models.DataSource
+	) -> Optional[dt]:
+		"""
+		Retrieves the first row's timestamp
+		:param participant: participant that has refernece to user and campaign
+		:param data_source: type of data to retrieve
+		:return: first timestamp in the table
+		"""
+
+		table_name = DataTable.__get_name(participant=participant)
+
+		DataTable.__connect()
+		cur: pg2_extras.DictCursor = DataTable.con.cursor(cursor_factory=pg2_extras.DictCursor)
+		cur.execute(f'select ts from data.{table_name} where data_source_id = %s order by ts asc limit 1', (  # noqa
+			data_source.id,
+		))
+		res = list(cur.fetchall())
+		cur.close()
+
+		return res[0][0] if res else None
 
 	@staticmethod
 	def dump_to_file(
@@ -217,7 +273,7 @@ class DataSourceStats:
 	):
 		self.data_source: models.DataSource = notnull(data_source)
 		self.amount_of_samples: int = notnull(amount_of_samples)
-		self.last_sync_time: dt = notnull(last_sync_time)
+		self.last_sync_time: dt = notnull(last_sync_time).astimezone(tz=pytz.utc).replace(tzinfo=None)
 
 
 class ParticipantStats:
@@ -232,17 +288,18 @@ class ParticipantStats:
 			models.CampaignDataSources.filter(campaign=participant.campaign)
 		))
 		for data_source in sorted(data_sources, key=lambda x: x.name):
-			latest_hourly_stats: models.HourlyStats = models.HourlyStats.filter(
+			latest_hourly_stats: Optional[models.HourlyStats] = models.HourlyStats.filter(
 				participant=participant,
 				data_source=data_source
 			).order_by(
-				models.HourlyStats.ts,
 				models.HourlyStats.ts.desc()
 			).limit(1)
 
+			if latest_hourly_stats: latest_hourly_stats = list(latest_hourly_stats)[0]
+
 			self.per_data_source_stats[data_source] = DataSourceStats(
 				data_source=data_source,
-				amount_of_samples=latest_hourly_stats.amounts,
+				amount_of_samples=latest_hourly_stats.amount,
 				last_sync_time=latest_hourly_stats.ts
 			) if latest_hourly_stats else DataSourceStats(data_source=data_source)
 

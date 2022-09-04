@@ -4,9 +4,8 @@ services:
   nginx-static:
     image: nginx:alpine
     container_name: et-static
-    restart: always
     ports:
-      - "8080:80"
+      - '${STATIC_PORT}:80'
     volumes:
       - ./static-server/static:/srv
       - ./static-server/nginx.conf:/etc/nginx/conf.d/default.conf
@@ -15,13 +14,14 @@ services:
     image: postgres:alpine
     container_name: et-db
     environment:
-      DATABASE_HOST: '${DATABASE_HOST}'
-      DATABASE_PORT: '${DATABASE_PORT}'
-      POSTGRES_DBNAME: '${DATABASE_NAME}'
-      POSTGRES_USER: '${DATABASE_USER}'
-      POSTGRES_PASSWORD: '${DATABASE_PASSWORD}'
-      PGDATA: /pg-static
+      POSTGRES_DBNAME: ${POSTGRES_DBNAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - '5432:5432'
-    volumes:
-      - ./pg_data:/var/lib/postgresql/data
+      - '${POSTGRES_PORT}:5432'
+
+#  dashboard:
+#    image: qobiljon/dashboard:1.2
+#    container_name: et-dashboard
+#    ports:
+#      - '${APP_PORT}:8000'

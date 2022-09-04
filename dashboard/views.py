@@ -26,9 +26,9 @@ from django.http import HttpResponse
 
 # app
 from dashboard.models import EnhancedDataSource
-from boilerplate import selectors as slc, models
-from boilerplate import services as svc
-from boilerplate import utils
+from easytrack import selectors as slc, models
+from easytrack import services as svc
+from easytrack import utils
 
 
 def handle_google_verification(request):
@@ -529,7 +529,6 @@ def handle_easytrack_monitor(request):
 			all_data_sources = slc.get_campaign_data_sources(campaign=campaign)
 			all_participants = slc.get_campaign_participants(campaign=campaign)
 			selected_participant = None
-			selected_data_source = None
 			if campaign is not None:
 				from_ts = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 				till_ts = from_ts + datetime.timedelta(hours=24)
