@@ -1,4 +1,9 @@
-bind = '0.0.0.0:8443'
-certfile = 'fullchain.pem'
-keyfile = 'privkey.pem'
-workers = 5
+import multiprocessing
+import dotenv
+from os import getenv
+
+dotenv.load_dotenv()
+
+bind = f'{getenv("APP_HOST")}:{getenv("APP_PORT")}'
+max_requests = 1000
+workers = multiprocessing.cpu_count() * 2 + 1

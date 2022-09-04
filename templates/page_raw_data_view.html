@@ -1,9 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
-    {% load static %}
     {% if records|length == 0 %}
         <h2>[ NO DATA / EMPTY ]</h2>
-        <img src="{% static 'sad_icon.png' %}" alt="Under construction">
+        <img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/others/failure.png" alt="Under construction">
     {% else %}
         <form id="view_data_submit_form" action="{% url 'view_data' %}" method="get" onsubmit="onFormSubmit()">
             <input type="number" name="campaign_id" value="{{ request.GET.campaign_id }}" hidden>
@@ -87,9 +86,11 @@
         .row_column {
             width: 10%;
         }
+
         .time_column {
             width: 20%;
         }
+
         .value_column {
             width: 70%
         }

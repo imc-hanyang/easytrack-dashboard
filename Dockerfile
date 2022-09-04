@@ -1,25 +1,51 @@
-# base image
-FROM python:3.7-slim
+FROM python:3.10-slim as base
 
-# environment variables
+# env to avoid trash
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
+
+FROM base AS deps
+
+# postgres
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends gcc
+RUN apt-get install libpq-dev -y
+ENV LDFLAGS '-L/usr/local/opt/libpq/lib'
+ENV CPPFLAGS '-I/usr/local/opt/libpq/include'
+ENV PKG_CONFIG_PATH '/usr/local/opt/libpq/lib/pkgconfig'
+
+# pipenv
+RUN pip install --upgrade pip
+RUN pip install pipenv
+COPY Pipfile .
+RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy --skip-lock
+
+
+FROM base AS runtime
+
+# prepare runtime environment
+COPY --from=deps /.venv /.venv
+ENV PATH="/.venv/bin:$PATH"
+
 # set working directory
-RUN mkdir /home/et_dashboard
-COPY . /home/et_dashboard
-WORKDIR /home/et_dashboard
+RUN useradd --create-home easytrack
+WORKDIR /home/easytrack
+USER easytrack
 
-# install dependencies
-RUN pip install -r requirements.txt
-RUN pip install gunicorn
-# RUN pip install pyOpenSSL
-RUN python manage.py makemigrations
-RUN python manage.py migrate
+# install app
+COPY . .
 
-# open ports
-EXPOSE 80
+# migrate database
+# RUN python manage.py makemigrations
+# RUN python manage.py migrate
+
+# open app port
+EXPOSE $APP_PORT
 
 # run web server
-CMD ["python", "manage.py", "runserver", "0:80"]
-#CMD ["gunicorn", "-c", "gunicorn_config.py", "ET_Dashboard.wsgi"]
+ENTRYPOINT ["python", "manage.py", "runserver"]
+CMD ["0.0.0.0:8000"]
+
+#ENTRYPOINT ["gunicorn", 'dashboard.wsgi']
+#CMD ['-c', 'gunicorn_config.py']
