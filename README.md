@@ -1,6 +1,10 @@
 # Easy Track Platform
 Download the [easytrack-dashboard-static-data.zip](https://drive.google.com/file/d/18v8P6Ki5rw_WRHXBhplFU-OP6sg0InAf/view) folder and unpack here.
 
+| Docker Image | [![Docker Image Version (latest semver)](https://img.shields.io/docker/v/qobiljon/dashboard)](https://hub.docker.com/r/qobiljon/dashboard) |
+|--------|---------------------------------------------------------------------------------------------|
+
+
 Table of contents
 =================
 <!--ts-->
