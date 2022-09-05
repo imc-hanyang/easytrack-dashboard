@@ -33,19 +33,10 @@ RUN useradd --create-home easytrack
 WORKDIR /home/easytrack
 USER easytrack
 
-# install app
-COPY . .
+# install gunicorn and the app
+RUN pip install -U gunicorn
+COPY dashboard templates .gitignore dashboard.yaml manage.py gunicorn.ini ./
 
-# migrate database
-# RUN python manage.py makemigrations
-# RUN python manage.py migrate
-
-# open app port
+# open app port and run the app
 EXPOSE $APP_PORT
-
-# run web server
-ENTRYPOINT ["python", "manage.py", "runserver"]
-CMD ["0.0.0.0:8000"]
-
-#ENTRYPOINT ["gunicorn", 'dashboard.wsgi']
-#CMD ['-c', 'gunicorn_config.py']
+CMD ["gunicorn", "dashboard.wsgi", "-c", "gunicorn.ini"]

@@ -9,11 +9,13 @@ load_dotenv()
 DEBUG = True
 ALLOWED_HOSTS = [
 	'localhost',
-	'127.0.0.1'
+	'127.0.0.1',
+	'host.docker.internal',
 ]
 INTERNAL_IPS = [
 	'127.0.0.1',
 	'localhost',
+	'host.docker.internal',
 	socket.gethostbyname(socket.gethostname())[:-1] + '1'
 ]
 

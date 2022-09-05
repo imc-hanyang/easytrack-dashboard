@@ -5,10 +5,11 @@
     <title>{{ title }}</title>
 
     <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
-    <link rel="shortcut icon" href="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/others//favicon.ico">
+    {% load fix_localhost %}
+    <link rel="shortcut icon" href="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/others//favicon.ico">
     <meta name="google-site-verification" content="LlQenU10qxF_Zc7Mr56TrTZjwkgyaj3OtFfJbwKhIs4"/>
-    <script src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/js/jquery.min.js"></script>
-    <script src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/js/api.js"></script>
+    <script src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/js/jquery.min.js"></script>
+    <script src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/js/api.js"></script>
 </head>
 <body>
 <header>

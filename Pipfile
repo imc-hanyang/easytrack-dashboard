@@ -19,6 +19,7 @@ requests-oauthlib = "*"
 social = "*"
 social-auth-app-django = "*"
 social-auth-core = "*"
+python-easytrack = "*"
 
 [dev-packages]
 

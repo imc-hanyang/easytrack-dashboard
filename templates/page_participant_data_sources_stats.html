@@ -11,16 +11,17 @@
             <th class="sync_time_column">Latest sync time</th>
             <th class="actions_column">Actions (on data)</th>
         </tr>
+        {% load fix_localhost %}
         {% for data_source in data_sources %}
             <tr data-source="{{ data_source.name }}" class="data_source">
-                <td class="icon_column"><img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt="{{ data_source.name }}"></td>
+                <td class="icon_column"><img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt="{{ data_source.name }}"></td>
                 <td class="name_column">{{ data_source.name }}</td>
                 <td class="config_column" title="{{ data_source.config_json }}">{{ data_source.config_json|truncatechars:30 }}</td>
                 <td class="amount_column" {% if data_source.amount_of_data == 0 %} style="color: red;" {% endif %}>{{ data_source.amount_of_data|intcomma }} samples</td>
                 <td class="sync_time_column">{{ data_source.last_sync_time }}</td>
                 <td class="actions_column">
                     <a class="action_button" href="{% url 'view_data' %}?campaign_id={{ campaign.id }}&email={{ participant.email }}&data_source_id={{ data_source.id }}&from_timestamp=-1">
-                        <img title="View raw data" class="action_button_green" src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/button/view.png" alt="view">
+                        <img title="View raw data" class="action_button_green" src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/button/view.png" alt="view">
                     </a>
                 </td>
             </tr>

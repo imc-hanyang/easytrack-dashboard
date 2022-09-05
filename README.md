@@ -1,5 +1,5 @@
 # Easy Track Platform
-Download the [easytrack-dashboard-static-data.zip](https://drive.google.com/file/d/18v8P6Ki5rw_WRHXBhplFU-OP6sg0InAf/view) folder and unpack here.
+Download the [easytrack-dashboard-static-data.zip](https://drive.google.com/file/d/1eRpvfNBKzbmri74G5QimrqZiPE7PV_ts) folder and unpack here.
 
 Table of contents
 =================

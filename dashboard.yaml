@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  nginx-static:
+    image: nginx:alpine
+    container_name: et-static
+    ports:
+      - '${STATIC_PORT}:80'
+    volumes:
+      - ./static-conf/static:/srv
+      - ./static-conf/nginx.conf:/etc/nginx/conf.d/default.conf
+
+  dashboard:
+    image: qobiljon/dashboard:${DASHBOARD_IMG_VER}
+    container_name: et-dashboard
+    ports:
+      - '${APP_PORT}:8000'
