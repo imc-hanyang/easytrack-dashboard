@@ -7,21 +7,19 @@ services:
     ports:
       - '${STATIC_PORT}:80'
     volumes:
-      - ./static-server/static:/srv
-      - ./static-server/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./static-conf/static:/srv
+      - ./static-conf/nginx.conf:/etc/nginx/conf.d/default.conf
 
-  postgres:
-    image: postgres:alpine
-    container_name: et-db
+  dashboard:
+    image: qobiljon/dashboard:${DASHBOARD_IMG_VER}
+    container_name: et-dashboard
     environment:
+      STATIC_HOST: host.docker.internal
+      STATIC_PORT: ${STATIC_PORT}
+      POSTGRES_HOST: host.docker.internal
+      POSTGRES_PORT: ${POSTGRES_PORT}
       POSTGRES_DBNAME: ${POSTGRES_DBNAME}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - '${POSTGRES_PORT}:5432'
-
-#  dashboard:
-#    image: qobiljon/dashboard:1.2
-#    container_name: et-dashboard
-#    ports:
-#      - '${APP_PORT}:8000'
+      - '8000:8000'

@@ -355,16 +355,16 @@ def handle_raw_samples_list(request):
 				if 'email' in request.GET:
 					db_participant_user = slc.find_user(user_id=None, email=request.GET['email'])
 					if db_participant_user is not None and slc.is_participant(user=db_participant_user, campaign=campaign) and \
-						'from_timestamp' in request.GET and 'data_source_id' in request.GET and utils.is_numeric(request.GET['from_timestamp']) and utils.is_numeric(request.GET['data_source_id']):
+							'from_timestamp' in request.GET and 'data_source_id' in request.GET and utils.is_numeric(request.GET['from_timestamp']) and utils.is_numeric(request.GET['data_source_id']):
 						participant = slc.get_participant(user=user, campaign=campaign)
 						from_timestamp = utils.int2ts(int(request.GET['from_timestamp']))
 						data_source = slc.find_data_source(data_source_id=int(request.GET['data_source_id']), name=None)
 						if data_source is not None:
 							records = []
 							for i, record in enumerate(slc.get_next_k_data_records(
-								participant=participant,
-								data_source=data_source,
-								from_ts=from_timestamp, k=500
+									participant=participant,
+									data_source=data_source,
+									from_ts=from_timestamp, k=500
 							)):
 								value = json.dumps(record.val)
 								if len(value) > 5 * 1024:  # 5KB (e.g., binary files)
@@ -372,7 +372,8 @@ def handle_raw_samples_list(request):
 								records += [{
 									'row': i + 1,
 									'timestamp': utils.ts2str(ts=record.ts),
-									'value': value
+									'value': value,
+									'link': f'https://geoplan.iptime.org:7443/gsafety/waypoint?tagId={record.val["tag_id"]}&from={record.ts.strftime("%Y-%m-%dT%H:%M:%S")}&to={record.ts.strftime("%Y-%m-%dT%H:%M:%S")}'
 								}]
 								from_timestamp = record.ts
 							return render(

@@ -3,6 +3,8 @@
     {% if error %}
         <h2 id="errorMessage">Failed to create the campaign, please try again!</h2>
     {% endif %}
+    
+    {% load fix_localhost %}
 
     <form action="{% url 'campaign-editor' %}" method="post">
         {% csrf_token %}
@@ -39,7 +41,7 @@
                 {% for data_source in data_sources %}
                     <tr data-source="{{ data_source.name }}" class="{% if data_source.selected %}selected_data_source{% else %}data_source{% endif %}">
                         <td><input type="checkbox" name="DATA_SOURCE_{{ data_source.name }}" {% if data_source.selected %}checked{% endif %}></td>
-                        <td><img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt=""></td>
+                        <td><img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt=""></td>
                         <td>{{ data_source.name }}</td>
                     </tr>
                 {% endfor %}
@@ -48,7 +50,7 @@
                 {% for data_source in data_sources %}
                     <tr data-source="{{ data_source.name }}" class="data_source">
                         <td><input type="checkbox" name="DATA_SOURCE_{{ data_source.name }}"></td>
-                        <td><img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt=""></td>
+                        <td><img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt=""></td>
                         <td>{{ data_source.name }}</td>
                     </tr>
                 {% endfor %}
@@ -117,7 +119,8 @@
             let cell = row.insertCell();
             cell.innerHTML = '<input type="checkbox" name="' + name + '">';
             cell = row.insertCell();
-            cell.innerHTML = '<input type="text" value="miscellaneous.png" name="icon_name_' + name + '" hidden><img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/data_source/new.png" alt="">';
+            {% load fix_localhost %}
+            cell.innerHTML = '<input type="text" value="miscellaneous.png" name="icon_name_' + name + '" hidden><img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/data_source/new.png" alt="">';
             cell = row.insertCell();
             cell.innerHTML = '<input type="text" value="' + name + '" class="jsonField" disabled>';
 

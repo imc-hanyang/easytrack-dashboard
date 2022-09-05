@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
+    {% load fix_localhost %}
     {% if records|length == 0 %}
         <h2>[ NO DATA / EMPTY ]</h2>
-        <img src="http://{{ STATIC_HOST }}:{{ STATIC_PORT }}/images/others/failure.png" alt="Under construction">
+        <img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/others/failure.png" alt="Under construction">
     {% else %}
         <form id="view_data_submit_form" action="{% url 'view_data' %}" method="get" onsubmit="onFormSubmit()">
             <input type="number" name="campaign_id" value="{{ request.GET.campaign_id }}" hidden>
@@ -27,7 +28,7 @@
                     <td>{{ record.row }}</td>
                     <td>{{ record.timestamp }}</td>
                     {% if record.value|length <= 512 %}
-                        <td title="{{ record.value }}">{{ record.value|truncatechars:256 }}</td>
+                        <td title="{{ record.value }}"><a style="text-decoration: none; color: black" href="{{ record.link }}">{{ record.value|truncatechars:256 }}</a></td>
                     {% else %}
                         <td>[ <i>{{ record.value|length }} byte data record</i> ]</td>
                     {% endif %}
