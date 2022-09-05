@@ -372,8 +372,7 @@ def handle_raw_samples_list(request):
 								records += [{
 									'row': i + 1,
 									'timestamp': utils.ts2str(ts=record.ts),
-									'value': value,
-									'link': f'https://geoplan.iptime.org:7443/gsafety/waypoint?tagId={record.val["tag_id"]}&from={record.ts.strftime("%Y-%m-%dT%H:%M:%S")}&to={record.ts.strftime("%Y-%m-%dT%H:%M:%S")}'
+									'value': value
 								}]
 								from_timestamp = record.ts
 							return render(
