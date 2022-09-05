@@ -13,5 +13,13 @@ services:
   dashboard:
     image: qobiljon/dashboard:${DASHBOARD_IMG_VER}
     container_name: et-dashboard
+    environment:
+      STATIC_HOST: host.docker.internal
+      STATIC_PORT: ${STATIC_PORT}
+      POSTGRES_HOST: host.docker.internal
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DBNAME: ${POSTGRES_DBNAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - '${APP_PORT}:8000'
+      - '8000:8000'

@@ -35,8 +35,10 @@ USER easytrack
 
 # install gunicorn and the app
 RUN pip install -U gunicorn
-COPY dashboard templates .gitignore dashboard.yaml manage.py gunicorn.ini ./
+COPY dashboard dashboard
+COPY templates templates
+COPY .gitignore manage.py gunicorn.ini ./
 
 # open app port and run the app
-EXPOSE $APP_PORT
+EXPOSE 8000
 CMD ["gunicorn", "dashboard.wsgi", "-c", "gunicorn.ini"]

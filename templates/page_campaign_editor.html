@@ -3,6 +3,8 @@
     {% if error %}
         <h2 id="errorMessage">Failed to create the campaign, please try again!</h2>
     {% endif %}
+    
+    {% load fix_localhost %}
 
     <form action="{% url 'campaign-editor' %}" method="post">
         {% csrf_token %}
