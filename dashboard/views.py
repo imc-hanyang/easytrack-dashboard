@@ -28,6 +28,7 @@ from django.http import HttpResponse
 from dashboard.models import EnhancedDataSource
 from easytrack import selectors as slc, models
 from easytrack import services as svc
+from easytrack import wrappers
 from easytrack import utils
 
 
@@ -555,7 +556,7 @@ def handle_easytrack_monitor(request):
 							for data_source in all_data_sources:
 								ts = from_ts
 								while ts < till_ts:
-									amount = slc.get_filtered_amount_of_data(
+									amount = wrappers.DataTable.select_count(
 										participant=participant,
 										data_source=data_source,
 										from_ts=ts,
@@ -610,7 +611,7 @@ def handle_easytrack_monitor(request):
 							for participant in (all_participants if selected_participant.id == 'all' else [selected_participant]):
 								ts = from_ts
 								while ts < till_ts:
-									amount = slc.get_filtered_amount_of_data(
+									amount = wrappers.DataTable.select_count(
 										participant=participant,
 										data_source=data_source,
 										from_ts=ts,
