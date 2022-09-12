@@ -177,7 +177,7 @@ def handle_participants_list(request):
 					# campaign easytrack page
 					participants = list()
 					for p in slc.get_campaign_participants(campaign=campaign):
-						stats = slc.get_participants_latest_stats(participant=p)
+						stats = wrappers.ParticipantStats(participant=p)
 						participants.append({
 							'id': p.user.id,
 							'name': p.user.name,
@@ -290,7 +290,7 @@ def handle_participants_data_list(request):
 						)
 					if participant is not None:
 						data_sources = list()
-						stats = slc.get_participants_latest_stats(participant=participant)
+						stats = wrappers.ParticipantStats(participant=participant)
 						for data_source in slc.get_campaign_data_sources(campaign=campaign):
 							data_source_stats = stats[data_source]
 							data_sources.append({
@@ -356,16 +356,17 @@ def handle_raw_samples_list(request):
 				if 'email' in request.GET:
 					db_participant_user = slc.find_user(user_id=None, email=request.GET['email'])
 					if db_participant_user is not None and slc.is_participant(user=db_participant_user, campaign=campaign) and \
-							'from_timestamp' in request.GET and 'data_source_id' in request.GET and utils.is_numeric(request.GET['from_timestamp']) and utils.is_numeric(request.GET['data_source_id']):
+						'from_timestamp' in request.GET and 'data_source_id' in request.GET and utils.is_numeric(request.GET['from_timestamp']) and utils.is_numeric(request.GET['data_source_id']):
 						participant = slc.get_participant(user=user, campaign=campaign)
 						from_timestamp = utils.int2ts(int(request.GET['from_timestamp']))
 						data_source = slc.find_data_source(data_source_id=int(request.GET['data_source_id']), name=None)
 						if data_source is not None:
 							records = []
-							for i, record in enumerate(slc.get_next_k_data_records(
-									participant=participant,
-									data_source=data_source,
-									from_ts=from_timestamp, k=500
+							for i, record in enumerate(wrappers.DataTable.select_next_k(
+								participant=participant,
+								data_source=data_source,
+								from_ts=from_timestamp,
+								limit=500
 							)):
 								value = json.dumps(record.val)
 								if len(value) > 5 * 1024:  # 5KB (e.g., binary files)
@@ -422,7 +423,7 @@ def handle_campaign_editor(request):
 							'icon_name': data_source.icon_name,
 							'selected': data_source in selected_data_sources
 						})
-					data_source_infos.sort(key=lambda key: key['name'])
+					data_source_infos.sort(key=lambda _key: _key['name'])
 					return render(
 						request=request,
 						template_name='../templates/page_campaign_editor.html',
@@ -445,7 +446,7 @@ def handle_campaign_editor(request):
 						'name': data_source.name,
 						'icon_name': data_source.icon_name
 					}]
-				new_data_sources.sort(key=lambda key: key['name'])
+				new_data_sources.sort(key=lambda _key: _key['name'])
 				now_ts = utils.now_dt()
 				return render(
 					request=request,
@@ -484,9 +485,11 @@ def handle_campaign_editor(request):
 							if sub.lower() in icon_name:
 								new_icon_name = icon_name
 								break
+					is_categorical = request.POST.get(f'{name}_is_categorical', False)
 					new_data_sources.append(svc.create_data_source(
 						name=name,
-						icon_name=new_icon_name
+						icon_name=new_icon_name,
+						is_categorical=is_categorical
 					))
 				if len(new_data_sources) == 0:
 					return redirect(to='campaigns-list')

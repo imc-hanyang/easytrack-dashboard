@@ -3,7 +3,7 @@
     {% if error %}
         <h2 id="errorMessage">Failed to create the campaign, please try again!</h2>
     {% endif %}
-    
+
     {% load fix_localhost %}
 
     <form action="{% url 'campaign-editor' %}" method="post">
@@ -117,12 +117,12 @@
             row.className = "data_source";
             row.setAttribute("new-data-source", "new-data-source");
             let cell = row.insertCell();
-            cell.innerHTML = '<input type="checkbox" name="' + name + '">';
+            cell.innerHTML = `<input type="checkbox" name="${name}">`;
             cell = row.insertCell();
             {% load fix_localhost %}
-            cell.innerHTML = '<input type="text" value="miscellaneous.png" name="icon_name_' + name + '" hidden><img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/data_source/new.png" alt="">';
+            cell.innerHTML = `<img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/data_source/new.png" alt="">`;
             cell = row.insertCell();
-            cell.innerHTML = '<input type="text" value="' + name + '" class="jsonField" disabled>';
+            cell.innerHTML = `<label>Categorical <input type="checkbox" name="${name}_is_categorical"></label>`;
 
             const rows = document.querySelectorAll("tr[new-data-source]");
             rows.forEach(row => {
@@ -133,7 +133,7 @@
 
                 if (!nameInput.hasAttribute("listenerIsSet")) {
                     checkBox.setAttribute("defaultName", checkBox.getAttribute("name"));
-                    nameInput.addEventListener('input', function (evt) {
+                    nameInput.addEventListener('input', function (_) {
                         if (nameInput.value.length === 0) {
                             nameInput.value = checkBox.getAttribute("defaultName");
                             checkBox.name = checkBox.getAttribute("defaultName");
