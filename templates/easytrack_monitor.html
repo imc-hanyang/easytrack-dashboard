@@ -17,7 +17,7 @@
             <select name="data_source_name" form="monitor-form">
                 <option value="all" {% if plot_data_source.name == 'all' %}selected{% endif %}>All campaign data sources combined</option>
                 {% for data_source in all_data_sources %}
-                    <option value="{{ data_source.name }}" {% if plot_data_source.name == data_source.name %}selected{% endif %}>{{ data_source.name }}</option>
+                    <option value="{{ data_source.name }}" {% if plot_data_source.db_data_source.name == data_source.name %}selected{% endif %}>{{ data_source.name }}</option>
                 {% endfor %}
             </select>
         </label>

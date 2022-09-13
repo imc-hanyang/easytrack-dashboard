@@ -614,7 +614,7 @@ def handle_easytrack_monitor(request):
 						if data_source is not None:
 							hourly_stats = collections.defaultdict(int)
 							# region compute hourly stats
-							for participant in (all_participants if selected_participant.id == 'all' else [selected_participant]):
+							for participant in (all_participants if not selected_participant or selected_participant.id == 'all' else [selected_participant]):
 								ts = from_ts
 								while ts < till_ts:
 									amount = wrappers.DataTable.select_count(
