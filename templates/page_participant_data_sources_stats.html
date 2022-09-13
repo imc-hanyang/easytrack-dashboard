@@ -6,7 +6,7 @@
         <tr>
             <th class="icon_column">Icon</th>
             <th class="name_column">Data source name</th>
-            <th class="config_column">Configurations</th>
+            <th class="type_column">Data/value type</th>
             <th class="amount_column">Number of<br>data samples</th>
             <th class="sync_time_column">Latest sync time</th>
             <th class="actions_column">Actions (on data)</th>
@@ -16,7 +16,7 @@
             <tr data-source="{{ data_source.name }}" class="data_source">
                 <td class="icon_column"><img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt="{{ data_source.name }}"></td>
                 <td class="name_column">{{ data_source.name }}</td>
-                <td class="config_column" title="{{ data_source.config_json }}">{{ data_source.config_json|truncatechars:30 }}</td>
+                <td class="type_column">{% if data_source.is_categorical %} Categorical {% else %} Quantitative {% endif %}</td>
                 <td class="amount_column" {% if data_source.amount_of_data == 0 %} style="color: red;" {% endif %}>{{ data_source.amount_of_data|intcomma }} samples</td>
                 <td class="sync_time_column">{{ data_source.last_sync_time }}</td>
                 <td class="actions_column">
@@ -47,7 +47,7 @@
             width: 20%;
         }
 
-        .config_column {
+        .type_column {
             width: 20%;
         }
 

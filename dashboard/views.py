@@ -177,7 +177,7 @@ def handle_participants_list(request):
 					# campaign easytrack page
 					participants = list()
 					for p in slc.get_campaign_participants(campaign=campaign):
-						stats = slc.get_participants_latest_stats(participant=p)
+						stats = wrappers.ParticipantStats(participant=p)
 						participants.append({
 							'id': p.user.id,
 							'name': p.user.name,
@@ -290,13 +290,14 @@ def handle_participants_data_list(request):
 						)
 					if participant is not None:
 						data_sources = list()
-						stats = slc.get_participants_latest_stats(participant=participant)
+						stats = wrappers.ParticipantStats(participant=participant)
 						for data_source in slc.get_campaign_data_sources(campaign=campaign):
 							data_source_stats = stats[data_source]
 							data_sources.append({
 								'id': data_source.id,
 								'name': data_source.name,
 								'icon_name': data_source.icon_name,
+								'is_categorical': data_source.is_categorical,
 								'amount_of_data': data_source_stats.amount_of_samples,
 								'last_sync_time': utils.ts2str(ts=data_source_stats.last_sync_time)
 							})
@@ -356,16 +357,17 @@ def handle_raw_samples_list(request):
 				if 'email' in request.GET:
 					db_participant_user = slc.find_user(user_id=None, email=request.GET['email'])
 					if db_participant_user is not None and slc.is_participant(user=db_participant_user, campaign=campaign) and \
-							'from_timestamp' in request.GET and 'data_source_id' in request.GET and utils.is_numeric(request.GET['from_timestamp']) and utils.is_numeric(request.GET['data_source_id']):
+						'from_timestamp' in request.GET and 'data_source_id' in request.GET and utils.is_numeric(request.GET['from_timestamp']) and utils.is_numeric(request.GET['data_source_id']):
 						participant = slc.get_participant(user=user, campaign=campaign)
 						from_timestamp = utils.int2ts(int(request.GET['from_timestamp']))
 						data_source = slc.find_data_source(data_source_id=int(request.GET['data_source_id']), name=None)
 						if data_source is not None:
 							records = []
-							for i, record in enumerate(slc.get_next_k_data_records(
-									participant=participant,
-									data_source=data_source,
-									from_ts=from_timestamp, k=500
+							for i, record in enumerate(wrappers.DataTable.select_next_k(
+								participant=participant,
+								data_source=data_source,
+								from_ts=from_timestamp,
+								limit=500
 							)):
 								value = json.dumps(record.val)
 								if len(value) > 5 * 1024:  # 5KB (e.g., binary files)
@@ -409,7 +411,7 @@ def handle_campaign_editor(request):
 	if user is not None:
 		if request.method == 'GET':
 			# request to open the campaign editor
-			db_data_sources = slc.get_all_data_sources()
+			all_data_sources = slc.get_all_data_sources()
 			if 'edit' in request.GET and 'campaign_id' in request.GET and str(request.GET['campaign_id']).isdigit():
 				# edit an existing campaign
 				campaign = slc.get_campaign(campaign_id=int(request.GET['campaign_id']))
@@ -420,9 +422,10 @@ def handle_campaign_editor(request):
 						data_source_infos.append({
 							'name': data_source.name,
 							'icon_name': data_source.icon_name,
+							'is_categorical': data_source.is_categorical,
 							'selected': data_source in selected_data_sources
 						})
-					data_source_infos.sort(key=lambda key: key['name'])
+					data_source_infos.sort(key=lambda _key: _key['name'])
 					return render(
 						request=request,
 						template_name='../templates/page_campaign_editor.html',
@@ -440,12 +443,13 @@ def handle_campaign_editor(request):
 			else:
 				# edit for a new campaign
 				new_data_sources = []
-				for data_source in db_data_sources:
+				for data_source in all_data_sources:
 					new_data_sources += [{
 						'name': data_source.name,
+						'is_categorical': data_source.is_categorical,
 						'icon_name': data_source.icon_name
 					}]
-				new_data_sources.sort(key=lambda key: key['name'])
+				new_data_sources.sort(key=lambda _key: _key['name'])
 				now_ts = utils.now_dt()
 				return render(
 					request=request,
@@ -484,9 +488,11 @@ def handle_campaign_editor(request):
 							if sub.lower() in icon_name:
 								new_icon_name = icon_name
 								break
+					is_categorical = request.POST.get(f'DATA_TYPE_{name}', '').lower() == 'categorical'
 					new_data_sources.append(svc.create_data_source(
 						name=name,
-						icon_name=new_icon_name
+						icon_name=new_icon_name,
+						is_categorical=is_categorical
 					))
 				if len(new_data_sources) == 0:
 					return redirect(to='campaigns-list')
@@ -681,15 +687,15 @@ def handle_dataset_info(request):
 			if campaign is not None:
 				campaign_data_sources = slc.get_campaign_data_sources(campaign=campaign)
 				campaign_data_sources.sort(key=lambda x: x.name)
-				db_participants = list(slc.get_campaign_participants(campaign=campaign))
-				db_participants.sort(key=lambda db_participant: db_participant.id)
+				participants: List[models.User] = list(map(lambda p: p.user, slc.get_campaign_participants(campaign=campaign)))
+				participants.sort(key=lambda p: p.id)
 				return render(
 					request=request,
-					template_name='../templates/page_dataset_configs.html',
+					template_name='../templates/page_campaign_info.html',
 					context={
 						'campaign': campaign,
 						'data_sources': campaign_data_sources,
-						'participants': db_participants,
+						'participants': participants,
 						'id': user.id,
 						'session_key': user.session_key
 					}
