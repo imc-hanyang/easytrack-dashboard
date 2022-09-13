@@ -297,6 +297,7 @@ def handle_participants_data_list(request):
 								'id': data_source.id,
 								'name': data_source.name,
 								'icon_name': data_source.icon_name,
+								'is_categorical': data_source.is_categorical,
 								'amount_of_data': data_source_stats.amount_of_samples,
 								'last_sync_time': utils.ts2str(ts=data_source_stats.last_sync_time)
 							})
@@ -410,7 +411,7 @@ def handle_campaign_editor(request):
 	if user is not None:
 		if request.method == 'GET':
 			# request to open the campaign editor
-			db_data_sources = slc.get_all_data_sources()
+			all_data_sources = slc.get_all_data_sources()
 			if 'edit' in request.GET and 'campaign_id' in request.GET and str(request.GET['campaign_id']).isdigit():
 				# edit an existing campaign
 				campaign = slc.get_campaign(campaign_id=int(request.GET['campaign_id']))
@@ -421,6 +422,7 @@ def handle_campaign_editor(request):
 						data_source_infos.append({
 							'name': data_source.name,
 							'icon_name': data_source.icon_name,
+							'is_categorical': data_source.is_categorical,
 							'selected': data_source in selected_data_sources
 						})
 					data_source_infos.sort(key=lambda _key: _key['name'])
@@ -441,9 +443,10 @@ def handle_campaign_editor(request):
 			else:
 				# edit for a new campaign
 				new_data_sources = []
-				for data_source in db_data_sources:
+				for data_source in all_data_sources:
 					new_data_sources += [{
 						'name': data_source.name,
+						'is_categorical': data_source.is_categorical,
 						'icon_name': data_source.icon_name
 					}]
 				new_data_sources.sort(key=lambda _key: _key['name'])
@@ -485,7 +488,7 @@ def handle_campaign_editor(request):
 							if sub.lower() in icon_name:
 								new_icon_name = icon_name
 								break
-					is_categorical = request.POST.get(f'{name}_is_categorical', False)
+					is_categorical = request.POST.get(f'DATA_TYPE_{name}', '').lower() == 'categorical'
 					new_data_sources.append(svc.create_data_source(
 						name=name,
 						icon_name=new_icon_name,
@@ -684,15 +687,15 @@ def handle_dataset_info(request):
 			if campaign is not None:
 				campaign_data_sources = slc.get_campaign_data_sources(campaign=campaign)
 				campaign_data_sources.sort(key=lambda x: x.name)
-				db_participants = list(slc.get_campaign_participants(campaign=campaign))
-				db_participants.sort(key=lambda db_participant: db_participant.id)
+				participants: List[models.User] = list(map(lambda p: p.user, slc.get_campaign_participants(campaign=campaign)))
+				participants.sort(key=lambda p: p.id)
 				return render(
 					request=request,
-					template_name='../templates/page_dataset_configs.html',
+					template_name='../templates/page_campaign_info.html',
 					context={
 						'campaign': campaign,
 						'data_sources': campaign_data_sources,
-						'participants': db_participants,
+						'participants': participants,
 						'id': user.id,
 						'session_key': user.session_key
 					}
