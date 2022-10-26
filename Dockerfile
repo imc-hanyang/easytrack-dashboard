@@ -41,4 +41,5 @@ COPY .gitignore manage.py gunicorn.ini ./
 
 # open app port and run the app
 EXPOSE 8000
-CMD ["gunicorn", "dashboard.wsgi", "-c", "gunicorn.ini"]
+ENTRYPOINT ["gunicorn"]
+CMD ["dashboard.wsgi", "-c", "gunicorn.ini"]
