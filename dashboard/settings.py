@@ -9,12 +9,7 @@ load_dotenv()
 
 DEBUG = True
 ALLOWED_HOSTS = environ['SERVERNAMES'].split(' ')
-INTERNAL_IPS = [
-	'127.0.0.1',
-	'localhost',
-	'20.0.0.65',
-	'118.217.7.46'
-]
+INTERNAL_IPS = environ['INTERNAL_IPS'].split(' ')
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
