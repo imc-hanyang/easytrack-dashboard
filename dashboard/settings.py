@@ -1,5 +1,6 @@
 from easytrack.utils import notnull
 from dotenv import load_dotenv
+from os import environ
 import socket
 import os
 
@@ -7,17 +8,12 @@ import os
 load_dotenv()
 
 DEBUG = True
-ALLOWED_HOSTS = [
-	'localhost',
-	'127.0.0.1',
-	'0.0.0.0',
-	'host.docker.internal',
-]
+ALLOWED_HOSTS = environ['SERVERNAMES'].split(' ')
 INTERNAL_IPS = [
 	'127.0.0.1',
 	'localhost',
-	'host.docker.internal',
-	socket.gethostbyname(socket.gethostname())[:-1] + '1'
+	'20.0.0.65',
+	'118.217.7.46'
 ]
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
