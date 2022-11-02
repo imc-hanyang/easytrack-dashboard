@@ -31,7 +31,8 @@
         {% endfor %}
     </table>
 
-    {% if debug and not joined %}
+    <!-- {% if debug and not joined %} -->
+    {% if not joined %}
         <a href="{% url 'dev-join-campaign' %}?campaign_id={{ campaign.id }}" id="dev_join_campaign_button">Join as a participant</a>
     {% endif %}
 
