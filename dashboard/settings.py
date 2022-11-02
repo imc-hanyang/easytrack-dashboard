@@ -10,7 +10,7 @@ load_dotenv()
 DEBUG = True
 ALLOWED_HOSTS = environ['SERVERNAMES'].split(' ')
 INTERNAL_IPS = environ['INTERNAL_IPS'].split(' ')
-INTERNAL_IPS += [".".join(ip.split(".")[:-1] + ["1"]) for _, _, ip in socket.gethostbyname_ex(socket.gethostname())]
+print(INTERNAL_IPS)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
