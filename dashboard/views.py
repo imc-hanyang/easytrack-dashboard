@@ -9,6 +9,7 @@ import plotly
 import json
 import os
 import re
+import html
 
 # libs
 from wsgiref.util import FileWrapper
@@ -278,7 +279,7 @@ def handle_participants_data_list(request):
                 'id': data_source.id,
                 'name': data_source.name,
                 'icon_name': data_source.icon_name,
-                'is_categorical': data_source.is_categorical,
+                'configurations': data_source.configurations,
                 'amount_of_data': data_source_stats.amount_of_samples,
                 'last_sync_time': last_sync_ts[:last_sync_ts.rindex(':')]
               })
@@ -412,7 +413,7 @@ def handle_campaign_editor(request):
             data_source_infos.append({
               'name': data_source.name,
               'icon_name': data_source.icon_name,
-              'is_categorical': data_source.is_categorical,
+              'configurations': data_source.configurations,
               'selected': data_source in selected_data_sources
             })
           data_source_infos.sort(key = lambda _key: _key['name'])
@@ -438,7 +439,7 @@ def handle_campaign_editor(request):
         for data_source in all_data_sources:
           new_data_sources += [{
             'name': data_source.name,
-            'is_categorical': data_source.is_categorical,
+            'configurations': data_source.configurations,
             'icon_name': data_source.icon_name,
           }]
         new_data_sources.sort(key = lambda _key: _key['name'])
@@ -466,14 +467,16 @@ def handle_campaign_editor(request):
       if 'name' in request.POST and all(
           map(lambda s: s in request.POST and utils.is_web_ts(request.POST[s]), ['startTime', 'endTime'])):
         key = 'DATA_SOURCE_'
-        new_data_source_names: List[str] = list(
-          map(lambda s: s[len(key):], filter(lambda s: re.fullmatch(rf'^{key}\w+$', s), request.POST)))
-        icon_names = map(
-          lambda x: x[6:-1],
-          re.findall(
+        new_data_source_names: List[str] = [
+          s[len(key):] for s in filter(lambda s: re.fullmatch(rf'^{key}\w+$', s), request.POST)
+        ]
+        icon_names = [
+          s[6:-1] for s in re.findall(
             pattern = r'href="\w+\.png"',
             string = requests.get(
-              f'http://{os.getenv(key="STATIC_HOST")}:{os.getenv(key="STATIC_PORT")}/images/data_source/').text))
+              f'http://{os.getenv(key="STATIC_HOST")}:{os.getenv(key="STATIC_PORT")}/images/data_source/').text,
+          )
+        ]
         new_data_sources: List[models.DataSource] = list()
         for name in new_data_source_names:
           new_icon_name = 'miscellaneous.png'
@@ -482,9 +485,13 @@ def handle_campaign_editor(request):
               if sub.lower() in icon_name:
                 new_icon_name = icon_name
                 break
-          is_categorical = request.POST.get(f'DATA_TYPE_{name}', '').lower() == 'categorical'
+          configurations = json.loads(html.unescape(request.POST.get(f'CONFIGURATIONS_{name}', '')).lower())
           new_data_sources.append(
-            svc.create_data_source(name = name, icon_name = new_icon_name, is_categorical = is_categorical))
+            svc.create_data_source(
+              name = name,
+              icon_name = new_icon_name,
+              configurations = configurations,
+            ))
         if len(new_data_sources) == 0:
           return redirect(to = 'campaigns-list')
         campaign_name = str(request.POST['name'])

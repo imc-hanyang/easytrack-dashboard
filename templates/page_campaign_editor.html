@@ -27,34 +27,33 @@
                 <td><input name="endTime" id="endTime" type="datetime-local" required value="{% if edit_mode %}{{ campaign_end_time }}{% else %}{{ after_month_time }}{% endif %}"/></td>
             </tr>
         </table>
-
-        <a id="addRowButton" onclick="onInsertNewRowClick()">NEW DATA SOURCE</a>
+        
+        <a id="addRowButton" onclick="onNewDataSourceClick()">NEW DATA SOURCE</a>
 
         <table id="dataSourceTable">
             <tr>
                 <th>Selected</th>
                 <th>Icon</th>
                 <th>Data source name</th>
-                <th>Data/value type</th>
             </tr>
             {% if edit_mode %}
-                {# edit an existing campaign #}
+                <!-- editing an existing campaign -->
                 {% for data_source in data_sources %}
                     <tr data-source="{{ data_source.name }}" class="{% if data_source.selected %}selected_data_source{% else %}data_source{% endif %}">
                         <td><input type="checkbox" name="DATA_SOURCE_{{ data_source.name }}" {% if data_source.selected %}checked{% endif %}></td>
                         <td><img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt=""></td>
                         <td>{{ data_source.name }}</td>
-                        <td>{% if data_source.is_categorical %} Categorical {% else %} Quantitative {% endif %}</td>
+                        <td> </td>
                     </tr>
                 {% endfor %}
             {% else %}
-                {# edit for a new campaign #}
+                <!-- creating a new campaign -->
                 {% for data_source in data_sources %}
                     <tr data-source="{{ data_source.name }}" class="data_source">
                         <td><input type="checkbox" name="DATA_SOURCE_{{ data_source.name }}"></td>
                         <td><img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt=""></td>
                         <td>{{ data_source.name }}</td>
-                        <td>{% if data_source.is_categorical %} Categorical {% else %} Quantitative {% endif %}</td>
+                        <td> </td>
                     </tr>
                 {% endfor %}
             {% endif %}
@@ -65,6 +64,30 @@
             <input type="submit" value="{% if edit_mode %}Save changes{% else %}Create{% endif %}" id="create_campaign_button">
         </div>
     </form>
+
+    <div id="data_source_editor">
+        
+        <span class="dataSourceEditorSection">Data source name</span>
+        <input type="text" id="modalDataSourceName" value="" placeholder="e.g. GPS">
+
+        <span class="dataSourceEditorSection">Data source columns</span>
+        <table id="data_source_editor_table">
+            <tr>
+                <td><input type="text" name="column_name" placeholder="e.g., Timestamp" required></td>
+                <td>
+                    <select name="column_type" required>
+                        <option>Timestamp</option>
+                        <option>Text</option>
+                        <option>Integer</option>
+                        <option>Float</option>
+                    </select>
+                </td>
+            </tr>
+        </table>
+        <a class="save_button" onclick="dataSourceReadyClick()">READY</a>
+        <a class="add_button" onclick="addDataSourceColumnClick()">ADD COLUMN</a>
+        <div style="padding-bottom: 20px;"></div>
+    </div>
 
     <script>
         let dataSourceTable;
@@ -98,53 +121,44 @@
             });
         });
 
-        function removeInactiveUsersClicked() {
-            if (removeInactiveUsersCheckbox.checked) {
-                removeInactiveUsersNumberInput.min = "1";
-                removeInactiveUsersNumberInput.max = "100";
-                removeInactiveUsersNumberInput.value = {% if campaign.remove_inactive_users_timeout > 0 %}{{ campaign.remove_inactive_users_timeout }}{% else %}1{% endif %};
-                removeInactiveUsersNumberInput.style.display = "inline-block";
-            } else {
-                removeInactiveUsersNumberInput.min = "-1";
-                removeInactiveUsersNumberInput.max = "-1";
-                removeInactiveUsersNumberInput.value = "-1";
-                removeInactiveUsersNumberInput.style.display = "none";
-            }
-        }
-
-        function onInsertNewRowClick() {
-            let name = 'DATA_SOURCE_' + counter;
-
+        function onInsertNewRowClick(name, configurations) {
             let row = dataSourceTable.insertRow(1);
             row.style.cursor = "pointer";
             row.className = "data_source";
             row.setAttribute("new-data-source", "new-data-source");
-            let cell = row.insertCell();
-            cell.innerHTML = `<input type="checkbox" name="${name}">`;
-            cell = row.insertCell();
+            let cell = row.insertCell(); // index 0
+            cell.innerHTML = `<input name="DATA_SOURCE_${name}" type="checkbox">`;
+            cell = row.insertCell(); // index 1
             {% load fix_localhost %}
             cell.innerHTML = `<img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/data_source/new.png" alt="">`;
-            cell = row.insertCell();
-            cell.innerHTML = `<input type="text" value="${name}" class="jsonField" disabled>`;
-            cell = row.insertCell();
-            cell.innerHTML = `<select name="${name}_data_type" disabled style="cursor: pointer"><option value="categorical" selected>Categorical</option><option value="quantitative">Quantitative</option></select>`;
+            cell = row.insertCell(); // index 2
+            cell.innerHTML = `<input name="DATA_SOURCE_${name}" type="text" value="${name}" class="jsonField" disabled>`;
+            cell = row.insertCell(); // index 3
+            cell.innerHTML = `<input name="CONFIGURATIONS_${name}" type="text" value="${configurations}" style="display: none" disabled>`;
 
             const rows = document.querySelectorAll("tr[new-data-source]");
             rows.forEach(row => {
                 row.removeAttribute("new-data-source");
                 let checkBox = row.childNodes[0].firstElementChild;
                 let nameInput = row.childNodes[2].firstElementChild;
-                let typeSelector = row.childNodes[3].firstElementChild;
+                let configurationsInput = row.childNodes[3].firstElementChild;
+
+                // alert(checkBox.value);
+                // alert(nameInput.value);
+                // alert(configurationsInput.value);
 
                 if (!nameInput.hasAttribute("listenerIsSet")) {
                     checkBox.setAttribute("defaultName", checkBox.getAttribute("name"));
+                    alert('entered');
                     nameInput.addEventListener('input', function (_) {
+                        alert('inside');
                         if (nameInput.value.length === 0) {
                             nameInput.value = checkBox.getAttribute("defaultName");
                             checkBox.name = checkBox.getAttribute("defaultName");
                         }
                         checkBox.name = `DATA_SOURCE_${nameInput.value}`;
-                        typeSelector.name = `DATA_TYPE_${nameInput.value}`;
+                        nameInput.name = `DATA_SOURCE_${nameInput.value}`;
+                        configurationsInput.name = `CONFIGURATIONS_${nameInput.value}`;
                     });
                     nameInput.setAttribute("listenerIsSet", 'true');
                 }
@@ -155,21 +169,23 @@
                     if (checkBox.checked) {
                         nameInput.removeAttribute("disabled");
                         nameInput.setAttribute("required", "");
-                        typeSelector.removeAttribute("disabled");
-                        typeSelector.setAttribute("required", "");
+
+                        configurationsInput.removeAttribute("disabled");
+                        configurationsInput.setAttribute("required", "");
 
                         nameInput.focus();
                         nameInput.select();
                     } else {
                         nameInput.setAttribute("disabled", "");
                         nameInput.removeAttribute("required");
-                        typeSelector.setAttribute("disabled", "");
-                        typeSelector.removeAttribute("required");
+
+                        configurationsInput.setAttribute("disabled", "");
+                        configurationsInput.removeAttribute("required");
                     }
                 });
 
                 nameInput.onclick = e => e.stopPropagation();
-                typeSelector.onclick = e => e.stopPropagation();
+                configurationsInput.onclick = e => e.stopPropagation();
             });
 
             row = function (ev) {
@@ -192,9 +208,120 @@
             };
             counter++;
         }
+        
+        function addDataSourceColumnClick() {
+            // get string of last tr element's from data_source_editor_table
+            let lastRow = document.getElementById("data_source_editor_table").firstElementChild.lastElementChild.outerHTML;
+            // empty the inputs in the last row
+            lastRow = lastRow.replace(/value="[^"]*"/g, 'value=""');
+            // add the new row to the table
+            document.getElementById("data_source_editor_table").firstElementChild.innerHTML += lastRow;
+        }
+
+        function dataSourceReadyClick() {
+            document.getElementById("data_source_editor").style.display = "none";
+
+            // get all rows in data_source_editor_table
+            let rowElements = document.getElementById("data_source_editor_table").firstElementChild.children;
+            
+            // loop through all rows except first one
+            // make hashmap (dictionary) called columns
+            let columns = new Map();
+            for (let i = 0; i < rowElements.length; i++) {
+                let row = rowElements[i];
+                let columnName = row.firstElementChild.firstElementChild.value;
+                
+                let x = row.lastElementChild.firstElementChild;
+                let columnType = x.options[x.selectedIndex].text.toLowerCase();
+                
+                columns.set(columnName, columnType);
+            }
+            let columnsString = JSON.stringify(Object.fromEntries(columns)).replace(/"/g, '&quot;');
+            // get value of modalDataSourceName input
+            let dataSourceName = document.getElementById("modalDataSourceName").value;
+            onInsertNewRowClick(dataSourceName, columnsString);
+
+            // delete all inner elements in tableContents except the first and second elements
+            let tableContent = document.getElementById("data_source_editor_table").firstElementChild;
+            while (tableContent.childElementCount > 1)
+                tableContent.removeChild(tableContent.lastElementChild);
+        }
+
+        function onNewDataSourceClick() {
+            // display #data_source_editor modal on top of page with jquery
+            document.getElementById("data_source_editor").style.display = "block";
+        }
     </script>
 
     <style>
+        #data_source_editor {
+            /* modal in center of screen */
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            /* modal width */
+            width: 50%;
+            /* modal height - wrap contents */
+            height: auto;
+            /* modal background */
+            background: #fff;
+            /* modal border business blue */
+            border: 1px solid #007bff;
+            /* modal border radius */
+            border-radius: 5px;
+            /* modal box shadow */
+            box-shadow: 0 0 10px #000;
+            /* padding 10px */
+            padding: 10px;
+        }
+
+        #modalDataSourceName {
+            display: block;
+            width: 100%;
+        }
+
+        .dataSourceEditorSection {
+            display: block;
+            margin: 10px;
+        }
+
+        #data_source_editor_table tr {
+            /* full width */
+            width: 100%;
+            /* tr border */
+            border: 1px solid #ccc;
+            /* tr border radius */
+            border-radius: 5px;
+            /* tr padding */
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        #data_source_editor_table input {
+            /* fill the remaining width */
+            width: 100%;
+        }
+
+        .save_button, .add_button {
+            background: #2ecc71;
+            padding: 8px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            margin-right: 10px;
+            float: right;
+        }
+
+        .save_button:hover, .add_button:hover {
+            background: #666;
+            color: #FFF;
+        }
+
         #errorMessage {
             color: orangered;
         }
