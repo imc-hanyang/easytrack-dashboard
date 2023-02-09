@@ -1,4 +1,4 @@
-FROM python:3.10-slim as base
+FROM python:3.9-slim as base
 
 # env to avoid trash
 ENV PYTHONDONTWRITEBYTECODE 1

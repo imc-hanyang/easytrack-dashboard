@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block content %}
+    {% load static %}
+    
+    <table class="table table-hover table-bordered table-striped">
+        <tr>
+            <th class="text-center">#</th>
+            <th class="text-center">PID</th>
+            <th class="text-center">Name</th>
+            <th class="text-center">Email</th>
+        </tr>
+
+        {% for user in users %}
+            <tr>
+                <td class="text-center">{{ forloop.counter }}</td>
+                <td class="text-center">{{ user.id }}</td>
+                <td class="text-center">{{ user.full_name }}</td>
+                <td class="text-center">{{ user.email }}</td>
+                <td class="text-center">
+                    {% if user.fcm_token %}
+                        <a title="Send EMA" href="#" onclick="sendEmaRequest({{ user.id }}, '{{ user.name }}');">
+                            <img src="{% static 'send.png' %}" alt="send">
+                        </a>
+                    {% else %}
+                        <a title="N/A" href="#">N/A</a>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    <a title="See DQ" href="{% url 'dq_plot' %}?pid={{ user.id }}">
+                        <img src="{% static 'barchart.png' %}" alt="Data quality">
+                    </a>
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+
+    <script>
+        function sendEmaRequest(pid, pname) {
+            $.ajax({
+                url: '{% url 'sendEMAPushApi' %}',
+                type: "POST",
+                headers: { Authorization: 'Token {{ token }}' },
+                data: {pid: pid},
+                error: err => alert(`Failed to deliver EMA to ${pname} (pid=${pid}) !`),
+                success: data => alert(`EMA delivered to ${pname} (pid=${pid}) !`),
+            });
+        }
+
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+
+            // While there remain elements to shuffle...
+            while (currentIndex !== 0) {
+
+                // Pick a remaining element...
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+
+                // And swap it with the current element.
+                [array[currentIndex], array[randomIndex]] = [
+                    array[randomIndex], array[currentIndex]];
+            }
+
+            return array;
+        }
+
+        function randomOrder() {
+            let arr = ['static, tight', 'walking, tight', 'running, tight', 'static, medium', 'walking, medium', 'running, medium', 'static, loose', 'walking, loose', 'running, loose'];
+            arr = shuffle(arr);
+            let str = "";
+            for (let i = 0; i < arr.length; i++)
+                str += `\n${i}. ${arr[i]}`;
+
+            copyTextToClipboard(str);
+            alert(str);
+        }
+    </script>
+{% endblock %}
