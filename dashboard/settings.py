@@ -21,8 +21,8 @@ init(
 )
 
 DEBUG = True
-ALLOWED_HOSTS = environ['SERVERNAMES'].split(' ')
-INTERNAL_IPS = environ['INTERNAL_IPS'].split(' ')
+ALLOWED_HOSTS = environ['SERVERNAMES'].replace(' ', '').split(',')
+INTERNAL_IPS = environ['INTERNAL_IPS'].replace(' ', '').split(',')
 print(INTERNAL_IPS)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

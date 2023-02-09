@@ -22,6 +22,7 @@ social-auth-app-django = "*"
 social-auth-core = "*"
 
 [dev-packages]
+djlint = "*"
 
 [requires]
 python_version = "3.9"
