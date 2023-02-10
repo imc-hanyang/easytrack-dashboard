@@ -486,7 +486,7 @@ def handle_campaign_editor(request):
                 new_icon_name = icon_name
                 break
           configurations_str = html.unescape(request.POST.get(f'CONFIGURATIONS_{name}', ''))
-          configurations = json.loads(configurations_str).lower() if configurations_str else {}
+          configurations = json.loads(configurations_str.replace(' ', '')) if configurations_str else {}
           new_data_sources.append(
             svc.create_data_source(
               name = name,

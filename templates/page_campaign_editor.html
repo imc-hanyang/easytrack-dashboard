@@ -84,8 +84,11 @@
                 </td>
             </tr>
         </table>
-        <a class="save_button" onclick="dataSourceReadyClick()">READY</a>
-        <a class="add_button" onclick="addDataSourceColumnClick()">ADD COLUMN</a>
+        <div>
+            <a class="cancel_button" onclick="closeDataSourceModalClick()">CANCEL</a>
+            <a class="add_button" onclick="addDataSourceColumnClick()">ADD COLUMN</a>
+            <a class="save_button" onclick="dataSourceReadyClick()">READY / SAVE</a>
+        </div>
         <div style="padding-bottom: 20px;"></div>
     </div>
 
@@ -143,15 +146,9 @@
                 let nameInput = row.childNodes[2].firstElementChild;
                 let configurationsInput = row.childNodes[3].firstElementChild;
 
-                // alert(checkBox.value);
-                // alert(nameInput.value);
-                // alert(configurationsInput.value);
-
                 if (!nameInput.hasAttribute("listenerIsSet")) {
                     checkBox.setAttribute("defaultName", checkBox.getAttribute("name"));
-                    alert('entered');
                     nameInput.addEventListener('input', function (_) {
-                        alert('inside');
                         if (nameInput.value.length === 0) {
                             nameInput.value = checkBox.getAttribute("defaultName");
                             checkBox.name = checkBox.getAttribute("defaultName");
@@ -212,21 +209,20 @@
         function addDataSourceColumnClick() {
             // get string of last tr element's from data_source_editor_table
             let lastRow = document.getElementById("data_source_editor_table").firstElementChild.lastElementChild.outerHTML;
-            // empty the inputs in the last row
-            lastRow = lastRow.replace(/value="[^"]*"/g, 'value=""');
+            
+            // create a new row with empty input values
+            let newRow = lastRow.replace(/value=".*?"/g, 'value=""');
+            
             // add the new row to the table
-            document.getElementById("data_source_editor_table").firstElementChild.innerHTML += lastRow;
+            document.getElementById("data_source_editor_table").firstElementChild.insertAdjacentHTML("beforeend", newRow);
         }
 
         function dataSourceReadyClick() {
-            document.getElementById("data_source_editor").style.display = "none";
-
             // get all rows in data_source_editor_table
             let rowElements = document.getElementById("data_source_editor_table").firstElementChild.children;
             
             // loop through all rows except first one
-            // make hashmap (dictionary) called columns
-            let columns = new Map();
+            let columns = [];
             for (let i = 0; i < rowElements.length; i++) {
                 let row = rowElements[i];
                 let columnName = row.firstElementChild.firstElementChild.value;
@@ -234,22 +230,34 @@
                 let x = row.lastElementChild.firstElementChild;
                 let columnType = x.options[x.selectedIndex].text.toLowerCase();
                 
-                columns.set(columnName, columnType);
+                // add columnName and columnType to columns array as json elements
+                columns.push({index: i, name: columnName, type: columnType});
             }
-            let columnsString = JSON.stringify(Object.fromEntries(columns)).replace(/"/g, '&quot;');
+            let columnsString = JSON.stringify(columns).replace(/"/g, '&quot;');
+            
             // get value of modalDataSourceName input
             let dataSourceName = document.getElementById("modalDataSourceName").value;
             onInsertNewRowClick(dataSourceName, columnsString);
-
-            // delete all inner elements in tableContents except the first and second elements
-            let tableContent = document.getElementById("data_source_editor_table").firstElementChild;
-            while (tableContent.childElementCount > 1)
-                tableContent.removeChild(tableContent.lastElementChild);
+            
+            closeDataSourceModalClick();
         }
 
         function onNewDataSourceClick() {
             // display #data_source_editor modal on top of page with jquery
             document.getElementById("data_source_editor").style.display = "block";
+        }
+
+        function closeDataSourceModalClick() {
+            // clear all input elements inside data_source_editor
+            document.getElementById("data_source_editor").querySelectorAll("input").forEach(input => input.value = "");
+            
+            // delete all inner elements in tableContents except the first element
+            let tableContent = document.getElementById("data_source_editor_table").firstElementChild;
+            while (tableContent.childElementCount > 1)
+                tableContent.removeChild(tableContent.lastElementChild);
+            
+            // hide modal
+            document.getElementById("data_source_editor").style.display = "none";
         }
     </script>
 
@@ -305,8 +313,8 @@
             width: 100%;
         }
 
-        .save_button, .add_button {
-            background: #2ecc71;
+        .save_button, .add_button, .cancel_button {
+            display: inline-block;
             padding: 8px;
             color: white;
             border: none;
@@ -316,8 +324,14 @@
             margin-right: 10px;
             float: right;
         }
+        .save_button, .add_button {
+            background: #2ecc71;
+        }
+        .cancel_button {
+            background: #e74c3c;
+        }
 
-        .save_button:hover, .add_button:hover {
+        .save_button:hover, .add_button:hover, .cancel_button:hover {
             background: #666;
             color: #FFF;
         }

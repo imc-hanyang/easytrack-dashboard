@@ -8,12 +8,12 @@
             <th class="data_source_cols_column">Data source columns</th>
             <th class="actions_column">Actions</th>
         </tr>
-        {% load humanize fix_localhost %}
+        {% load humanize fix_localhost data_source_hreadable %}
         {% for data_source in data_sources %}
             <tr class="table-content">
                 <td class="id_column">{{ data_source.id }}</td>
                 <td class="data_source_name_column">{{ data_source.name }}</td>
-                <td class="data_source_cols_column">{{ data_source.configurations.keys|join:","|truncatewords:4 }}</td>
+                <td class="data_source_cols_column">{{ data_source.configurations|data_source_hreadable }}</td>
                 <td class="actions_column">
                     <a title="Download {{ data_source.name }} dataset at this state" href="{% url 'download-csv' %}?campaign_id={{ campaign.id }}&data_source_id={{ data_source.id }}">
                         <img class="action_button_green" src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/button/download.png" alt="download">
