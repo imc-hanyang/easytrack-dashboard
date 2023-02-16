@@ -1,9 +1,4 @@
-# stdlib
-from typing import List
-
-# django
 from django import template
-from easytrack import models as mdl
 
 register = template.Library()
 

@@ -20,6 +20,7 @@ requests-oauthlib = "*"
 social = "*"
 social-auth-app-django = "*"
 social-auth-core = "*"
+pandas = "*"
 
 [dev-packages]
 djlint = "*"

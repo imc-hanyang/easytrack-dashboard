@@ -19,7 +19,7 @@
                         <img class="action_button_green" src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/button/download.png" alt="download">
                     </a>
 
-                    <a title="Upload csv content to {{ data_source.name }}" xoila onclick="uploadCSVFileClick('{% url 'upload-csv' %}?campaign_id={{ campaign.id }}&data_source_id={{ data_source.id }}')">
+                    <a title="Upload csv content to {{ data_source.name }}" xoila onclick="uploadCSVFileClick({{ data_source.id }}, null)">
                         <img class="action_button_orange" src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/button/upload.png" alt="upload">
                     </a>
                 </td>
@@ -58,7 +58,7 @@
                         <img class="action_button_green" src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/button/download.png" alt="download">
                     </a>
                     
-                    <a title="Upload csv content to {{ participant.email }}" onclick="uploadCSVFileClick('{% url 'upload-csv' %}?campaign_id={{ campaign.id }}&participant_pid={{ participant.id }}')">
+                    <a title="Upload csv content to {{ participant.email }}" onclick="uploadCSVFileClick(null, {{ participant.id }})">
                         <img class="action_button_orange" src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/button/upload.png" alt="upload">
                     </a>
                 </td>
@@ -81,13 +81,42 @@
     </table>
 
     <script>
-        function uploadCSVFileClick(url) {
-            alert(url);
+        function uploadCSVFileClick(data_source_id, user_id) {
+            const inputElem = document.getElementById("uploadFiles");
+            inputElem.click();
+
+            // clear files selected in "uploadFiles" element
+            inputElem.value = null;
+            
             // uploadFiles
-            const inputElement = document.getElementById("input");
-            inputElement.addEventListener("change", handleFiles, false);
+            inputElem.addEventListener("change", handleFiles, false);
             function handleFiles() {
-                const fileList = this.files; /* now you can work with the file list */
+                const fileList = this.files;
+                // alert(`You selected ${fileList.length} file(s)`);
+
+                const formData = new FormData();
+                // add csrf token
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                formData.append("campaign_id", {{ campaign.id }});
+                if (data_source_id)
+                    formData.append("data_source_id", data_source_id);
+                if (user_id)
+                    formData.append("user_id", user_id);
+                for (let i = 0; i < fileList.length; i++) {
+                    formData.append(`file-${i}`, fileList[i]);
+                }
+
+                // make post request, alert if statuscode is 200
+                fetch('{% url 'upload-csv' %}', {
+                    method: "POST",
+                    body: formData
+                }).then(response => {
+                    if (response.status === 200) {
+                        alert("Upload success");
+                    } else {
+                        alert(`Upload failed with status code ${response.status}`);
+                    }
+                });
             }
         }
     </script>

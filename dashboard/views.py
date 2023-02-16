@@ -25,12 +25,15 @@ from django.http import StreamingHttpResponse
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 
-# app
-from dashboard.models import EnhancedDataSource
+# easytrack
 from easytrack import selectors as slc, models
 from easytrack import services as svc
 from easytrack import wrappers
 from easytrack import utils
+
+# app
+from dashboard.models import EnhancedDataSource
+from dashboard import utils as dutils
 
 
 def handle_google_verification(request):
@@ -851,68 +854,36 @@ def handle_download_csv_api(request):
 
 
 @login_required
-@require_http_methods(['GET'])
+@require_http_methods(['POST'])
 def handle_upload_csv_api(request):
   user = slc.find_user(user_id = None, email = request.user.email)
   if user is not None:
-    if 'campaign_id' in request.GET and utils.str_is_numeric(request.GET['campaign_id']):
-      campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
+    if 'campaign_id' in request.POST and utils.str_is_numeric(request.POST['campaign_id']):
+      campaign = slc.get_campaign(campaign_id = int(request.POST['campaign_id']))
       if campaign and slc.is_supervisor(user = user, campaign = campaign):
-        if 'user_id' in request.GET and utils.str_is_numeric(request.GET['user_id']):
-          target_user = slc.find_user(user_id = int(request.GET['user_id']), email = None)
+        if 'user_id' in request.POST and utils.str_is_numeric(request.POST['user_id']):
+          target_user = slc.find_user(user_id = int(request.POST['user_id']), email = None)
           if target_user is not None and slc.is_participant(user = user, campaign = campaign):
-            dump_filepath = svc.dump_data(
-              participant = slc.get_participant(user = user, campaign = campaign),
-              data_source = None,
-            )
+            print(request.FILES)
+            pass   # TBD
           else:
-            return redirect(to = 'campaigns-list')
-        elif 'data_source_id' in request.GET and utils.str_is_numeric(request.GET['data_source_id']):
-          data_source = slc.find_data_source(data_source_id = int(request.GET['data_source_id']), name = None)
-          dump_filepaths: List[Tuple[models.Participant, str]] = list()
+            return HttpResponse(status = 400)
+        elif 'data_source_id' in request.POST and utils.str_is_numeric(request.POST['data_source_id']):
+          data_source = slc.find_data_source(data_source_id = int(request.POST['data_source_id']), name = None)
           if data_source:
-            for participant in slc.get_campaign_participants(campaign = campaign):
-              dump_filepaths.append((participant, svc.dump_data(participant = participant, data_source = data_source)))
-
-            # archive the dump content
-            now = datetime.datetime.now()
-            filename = f'easytrack-data-{data_source.name}-{now.month}-{now.day}-{now.year} {now.hour}-{now.minute}.zip'
-            dump_filepath = utils.get_temp_filepath(filename = filename)
-            print(f'dump filepath : {dump_filepath}')
-            fp = zipfile.ZipFile(dump_filepath, 'w', compression = zipfile.ZIP_DEFLATED, compresslevel = 9)
-            for participant, csv_filepath in dump_filepaths:
-              with open(csv_filepath, 'rb') as r:
-                fp.writestr(zinfo_or_arcname = f'{participant.user.email}.csv', data = bytes(r.read()))
-              os.remove(dump_filepath)
-            fp.close()
+            for fname in request.FILES:
+              if dutils.file_is_valid(
+                  data_source = data_source,
+                  fp = request.FILES[fname],
+              ):
+                print(fname, 'is valid')
+              else:
+                print(fname, 'is invalid')
           else:
-            return redirect(to = 'campaigns-list')
+            return HttpResponse(status = 400)
         else:
-          dump_filepaths: List[Tuple[models.Participant, str]] = list()
-          for participant in slc.get_campaign_participants(campaign = campaign):
-            dump_filepaths.append((participant, svc.dump_data(participant = participant, data_source = None)))
-
-          # archive the dump content
-          now = datetime.datetime.now()
-          filename = f'easytrack-data-{now.month}-{now.day}-{now.year} {now.hour}-{now.minute}.zip'
-          dump_filepath = utils.get_temp_filepath(filename = filename)
-          print(f'dump filepath : {dump_filepath}')
-          fp = zipfile.ZipFile(dump_filepath, 'w', compression = zipfile.ZIP_DEFLATED, compresslevel = 9)
-          for participant, csv_filepath in dump_filepaths:
-            with open(csv_filepath, 'rb') as r:
-              fp.writestr(zinfo_or_arcname = f'{participant.user.email}.csv', data = bytes(r.read()))
-            os.remove(dump_filepath)
-          fp.close()
-
-        filename = os.path.basename(dump_filepath)
-        chunk_size = 8192
-        res = StreamingHttpResponse(
-          streaming_content = FileWrapper(open(dump_filepath, 'rb'), chunk_size),
-          content_type = mimetypes.guess_type(dump_filepath)[0],
-        )
-        res['Content-Length'] = os.path.getsize(dump_filepath)
-        res['Content-Disposition'] = f'attachment; filename={filename}'
-        return res
+          return HttpResponse(status = 400)
+        return HttpResponse(status = 200)
       else:
         return redirect(to = 'campaigns-list')
     else:
