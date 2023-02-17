@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load humanize fix_localhost %}
+
+{% block content %}
+    
+    <!-- Page title -->
+    <h3>[{{ campaign.name }}] {{participant.name}}'s stats </h3>
+    
+    <!-- Table of stats on data sources -->
+    <table class="table text-center table-hover">
+        <thead>
+            <tr>
+                <th>Icon</th>
+                <th>Name</th>
+                <th>Amount of data</th>
+                <th>Last sync time</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for data_source in data_sources %}
+                <tr style="cursor: pointer">
+                    <!-- data source icon -->
+                    <td data-href="{% url 'view_data' %}?campaign_id={{ campaign.id }}&email={{ participant.email }}&data_source_id={{ data_source.id }}&from_timestamp=-1">
+                        <img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt="{{ data_source.name }}" style="width: 24px; height: 24px;">
+                    </td>
+                    
+                    <!-- data source name -->
+                    <td class="align-middle" data-href="{% url 'view_data' %}?campaign_id={{ campaign.id }}&email={{ participant.email }}&data_source_id={{ data_source.id }}&from_timestamp=-1">
+                        {{ data_source.name }}
+                    </td>
+
+                    <!-- amount of data -->
+                    <td class="align-middle" data-href="{% url 'view_data' %}?campaign_id={{ campaign.id }}&email={{ participant.email }}&data_source_id={{ data_source.id }}&from_timestamp=-1" {% if data_source.amount_of_data == 0 %} style="color: red;" {% endif %}>
+                        {{ data_source.amount_of_data|intcomma }} samples
+                    </td>
+
+                    <!-- last sync time -->
+                    <td class="align-middle" data-href="{% url 'view_data' %}?campaign_id={{ campaign.id }}&email={{ participant.email }}&data_source_id={{ data_source.id }}&from_timestamp=-1">
+                        {{ data_source.last_sync_time }}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        // participant (row) clicks
+        $(document).ready(function() {
+            const rows = document.querySelectorAll("td[data-href]");
+            rows.forEach(row => row.addEventListener("click", () => window.location.href = row.dataset.href));
+        });
+    </script>
+{% endblock %}

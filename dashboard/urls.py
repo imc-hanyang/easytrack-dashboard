@@ -6,11 +6,11 @@ urlpatterns = [
    # authentication
   path('login/', views.handle_login_api, name = 'login'),
   path('logout/', views.handle_logout_api, name = 'logout'),
-  path('dev_login/', views.handle_development_login_api, name = 'dev-login'),
+  path('login_dev/', views.handle_development_login_api, name = 'dev-login'),
 
    # easytrack navigation
-  path('', views.handle_campaigns_list, name = 'campaigns-list'),
-  path('campaign/', views.handle_participants_list, name = 'participants-list'),
+  path('', views.handle_campaigns_list, name = 'campaigns'),
+  path('campaign/', views.handle_participants_list, name = 'participants'),
   path('participant/', views.handle_participants_data_list, name = 'participant'),
   path('dev-join/', views.dev_join_campaign, name = 'dev-join-campaign'),
   path('data/', views.handle_raw_samples_list, name = 'view_data'),
@@ -30,6 +30,6 @@ urlpatterns = [
 
    # others
   path('admin/', admin.site.urls),
-  path('google43e44b3701ba10c8.html', views.handle_google_verification),
+  path('google-site-verification.html', views.handle_google_verification),
   path('google-auth/', include('social_django.urls', namespace = 'social')),
 ]

@@ -39,7 +39,7 @@ from dashboard import utils as dutils
 def handle_google_verification(request):
   return render(
     request = request,
-    template_name = '../templates/google43e44b3701ba10c8.html',
+    template_name = 'google43e44b3701ba10c8.html',
   )
 
 
@@ -58,12 +58,12 @@ def handle_login_api(request):
       if user is None:
         dj_logout(request = request)
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   return render(
     request = request,
-    template_name = '../templates/page_authentication.html',
+    template_name = 'login.html',
     context = {'title': 'Authentication'},
   )
 
@@ -102,7 +102,7 @@ def handle_development_login_api(request):
           user = dj_user,
           backend = 'django.contrib.auth.backends.ModelBackend',
         )
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
       else:
         return redirect(to = 'login')
   else:
@@ -122,7 +122,7 @@ def handle_development_login_api(request):
         user = dj_user,
         backend = 'django.contrib.auth.backends.ModelBackend',
       )
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
     else:
       return redirect(to = 'login')
 
@@ -148,7 +148,7 @@ def handle_campaigns_list(request):
 
     return render(
       request = request,
-      template_name = '../templates/page_campaigns.html',
+      template_name = 'campaigns.html',
       context = {
         'title': "%s's campaigns" % request.user.get_full_name(),
         'my_campaigns': campaigns,
@@ -190,7 +190,7 @@ def handle_participants_list(request):
           participants.sort(key = lambda x: x['id'])
           return render(
             request = request,
-            template_name = '../templates/page_campaign_participants.html',
+            template_name = 'participants.html',
             context = {
               'title': "%s's participants" % campaign.name,
               'campaign': campaign,
@@ -201,9 +201,9 @@ def handle_participants_list(request):
             },
           )
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   else:
     dj_logout(request = request)
     return redirect(to = 'login')
@@ -228,9 +228,9 @@ def handle_researchers_list(request):
               if oldSupervisor is not None and oldSupervisor.user != campaign.owner:
                 svc.remove_supervisor_from_campaign(oldSupervisor = oldSupervisor)
               else:
-                return redirect(to = 'campaigns-list')
+                return redirect(to = 'campaigns')
             else:
-              return redirect(to = 'campaigns-list')
+              return redirect(to = 'campaigns')
 
         # return new list of campaign's supervisors
         supervisors = list()
@@ -239,7 +239,7 @@ def handle_researchers_list(request):
         supervisors.sort(key = lambda x: x['name'])
 
         return render(request = request,
-                      template_name = '../templates/page_campaign_researchers.html',
+                      template_name = 'page_campaign_researchers.html',
                       context = {
                         'title': "%s's researchers" % campaign.name,
                         'campaign': campaign,
@@ -248,9 +248,9 @@ def handle_researchers_list(request):
                         'session_key': user.session_key
                       })
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   else:
     dj_logout(request = request)
     return redirect(to = 'login')
@@ -288,7 +288,7 @@ def handle_participants_data_list(request):
               })
             data_sources.sort(key = lambda x: x['name'])
             return render(request = request,
-                          template_name = '../templates/page_participant_data_sources_stats.html',
+                          template_name = 'data_source_stats.html',
                           context = {
                             'title': f'Data submitted by {participant_user.email} (ID = {participant_user.id})',
                             'campaign': campaign,
@@ -298,13 +298,13 @@ def handle_participants_data_list(request):
                             'session_key': user.session_key
                           })
           else:
-            return redirect(to = 'campaigns-list')
+            return redirect(to = 'campaigns')
         else:
-          return redirect(to = 'campaigns-list')
+          return redirect(to = 'campaigns')
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   else:
     dj_logout(request = request)
     return redirect(to = 'login')
@@ -322,11 +322,11 @@ def dev_join_campaign(request):
           add_user = user,
           campaign = campaign,
         )
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   else:
     dj_logout(request = request)
     return redirect(to = 'login')
@@ -374,7 +374,7 @@ def handle_raw_samples_list(request):
                 from_timestamp = record.ts
               return render(
                 request = request,
-                template_name = '../templates/page_raw_data_view.html',
+                template_name = 'page_raw_data_view.html',
                 context = {
                   'title': data_source.name,
                   'records': records,
@@ -384,15 +384,15 @@ def handle_raw_samples_list(request):
                 },
               )
             else:
-              return redirect(to = 'campaigns-list')
+              return redirect(to = 'campaigns')
           else:
-            return redirect(to = 'campaigns-list')
+            return redirect(to = 'campaigns')
         else:
-          return redirect(to = 'campaigns-list')
+          return redirect(to = 'campaigns')
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   else:
     dj_logout(request = request)
     return redirect(to = 'login')
@@ -424,7 +424,7 @@ def handle_campaign_editor(request):
           end_ts = utils.datetime_to_str(timestamp = campaign.end_ts, js_format = True)
           return render(
             request = request,
-            template_name = '../templates/page_campaign_editor.html',
+            template_name = 'page_campaign_editor.html',
             context = {
               'edit_mode': True,
               'title': '"%s" Campaign Editor' % campaign.name,
@@ -435,7 +435,7 @@ def handle_campaign_editor(request):
             },
           )
         else:
-          return redirect(to = 'campaigns-list')
+          return redirect(to = 'campaigns')
       else:
         # edit for a new campaign
         new_data_sources = []
@@ -451,7 +451,7 @@ def handle_campaign_editor(request):
         end_ts = utils.datetime_to_str(timestamp = now_datetime + td(days = 30), js_format = True)
         return render(
           request = request,
-          template_name = '../templates/page_campaign_editor.html',
+          template_name = 'page_campaign_editor.html',
           context = {
             'title': 'New campaign',
             'data_sources': new_data_sources,
@@ -465,7 +465,7 @@ def handle_campaign_editor(request):
           request.POST['campaign_id']) and int(request.POST['campaign_id']) > -1:
         campaign = slc.get_campaign(campaign_id = int(request.POST['campaign_id']))
         if not campaign or not slc.is_supervisor(user = user, campaign = campaign):
-          return redirect(to = 'campaigns-list')
+          return redirect(to = 'campaigns')
 
       if 'name' in request.POST and all(
           map(lambda s: s in request.POST and utils.is_web_ts(request.POST[s]), ['startTime', 'endTime'])):
@@ -497,7 +497,7 @@ def handle_campaign_editor(request):
               configurations = configurations,
             ))
         if len(new_data_sources) == 0:
-          return redirect(to = 'campaigns-list')
+          return redirect(to = 'campaigns')
         campaign_name = str(request.POST['name'])
         campaign_start_ts = datetime.datetime.fromtimestamp(
           utils.parse_timestamp_str(request.POST['startTime']).timestamp())
@@ -520,11 +520,11 @@ def handle_campaign_editor(request):
             end_ts = campaign_end_ts,
             data_sources = new_data_sources,
           )
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   else:
     dj_logout(request = request)
     return redirect(to = 'login')
@@ -605,7 +605,7 @@ def handle_easytrack_monitor(request):
 
             return render(
               request = request,
-              template_name = '../templates/easytrack_monitor.html',
+              template_name = 'easytrack_monitor.html',
               context = {
                 'title': 'EasyTracker',
                 'campaign': campaign,
@@ -658,7 +658,7 @@ def handle_easytrack_monitor(request):
 
               return render(
                 request = request,
-                template_name = '../templates/easytrack_monitor.html',
+                template_name = 'easytrack_monitor.html',
                 context = {
                   'title': 'EasyTracker',
                   'campaign': campaign,
@@ -670,13 +670,13 @@ def handle_easytrack_monitor(request):
                 },
               )
             else:
-              return redirect(to = 'campaigns-list')
+              return redirect(to = 'campaigns')
         else:
-          return redirect(to = 'campaigns-list')
+          return redirect(to = 'campaigns')
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   else:
     dj_logout(request = request)
     return redirect(to = 'login')
@@ -696,7 +696,7 @@ def handle_dataset_info(request):
         participants.sort(key = lambda p: p.id)
         return render(
           request = request,
-          template_name = '../templates/page_campaign_info.html',
+          template_name = 'page_campaign_info.html',
           context = {
             'campaign': campaign,
             'data_sources': campaign_data_sources,
@@ -706,9 +706,9 @@ def handle_dataset_info(request):
           },
         )
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   else:
     dj_logout(request = request)
     return redirect(to = 'login')
@@ -723,11 +723,11 @@ def handle_delete_campaign_api(request):
       campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
       if campaign and slc.is_supervisor(user = user, campaign = campaign):
         svc.delete_campaign(supervisor = slc.get_supervisor(user = user, campaign = campaign))
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   else:
     dj_logout(request = request)
     return redirect(to = 'login')
@@ -769,13 +769,13 @@ def handle_download_data_api(request):
             res['Content-Disposition'] = f'attachment; filename={filename}'
             return res
           else:
-            return redirect(to = 'campaigns-list')
+            return redirect(to = 'campaigns')
         else:
-          return redirect(to = 'campaigns-list')
+          return redirect(to = 'campaigns')
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   else:
     dj_logout(request = request)
     return redirect(to = 'login')
@@ -797,7 +797,7 @@ def handle_download_csv_api(request):
               data_source = None,
             )
           else:
-            return redirect(to = 'campaigns-list')
+            return redirect(to = 'campaigns')
         elif 'data_source_id' in request.GET and utils.str_is_numeric(request.GET['data_source_id']):
           data_source = slc.find_data_source(data_source_id = int(request.GET['data_source_id']), name = None)
           dump_filepaths: List[Tuple[models.Participant, str]] = list()
@@ -817,7 +817,7 @@ def handle_download_csv_api(request):
               os.remove(dump_filepath)
             fp.close()
           else:
-            return redirect(to = 'campaigns-list')
+            return redirect(to = 'campaigns')
         else:
           dump_filepaths: List[Tuple[models.Participant, str]] = list()
           for participant in slc.get_campaign_participants(campaign = campaign):
@@ -845,9 +845,9 @@ def handle_download_csv_api(request):
         res['Content-Disposition'] = f'attachment; filename={filename}'
         return res
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   else:
     dj_logout(request = request)
     return redirect(to = 'login')
@@ -885,9 +885,9 @@ def handle_upload_csv_api(request):
           return HttpResponse(status = 400)
         return HttpResponse(status = 200)
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   else:
     dj_logout(request = request)
     return redirect(to = 'login')
@@ -927,9 +927,9 @@ def handle_download_dataset_api(request):
         res['Content-Disposition'] = f'attachment; filename={filename}'
         return res
       else:
-        return redirect(to = 'campaigns-list')
+        return redirect(to = 'campaigns')
     else:
-      return redirect(to = 'campaigns-list')
+      return redirect(to = 'campaigns')
   else:
     dj_logout(request = request)
     return redirect(to = 'login')

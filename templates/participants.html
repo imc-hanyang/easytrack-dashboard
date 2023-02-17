@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load humanize fix_localhost %}
+
+{% block content %}
+    
+    <!-- Page title -->
+    <h3>{{ title }}</h3>
+
+    <!-- Table of participants -->
+    <table class="table text-center table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Participation<br>duration</th>
+                <th>Amount of<br>samples</th>
+                <th>Latest<br>heartbeat time</th>
+                <th>Latest<br>sync time</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for participant in participants %}
+            <tr style="cursor: pointer">
+                <td class="align-middle" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">{{ participant.id }}</td>
+                <td class="align-middle" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}" title="{{ participant.email }}">{{ participant.name }}</td>
+                <td class="align-middle" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}" >{{ participant.day_no }} days</td>
+                <td class="align-middle" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}" {% if participant.amount_of_data == 0 %} style="color: red;" {% endif %}>{{ participant.amount_of_data | intcomma }} samples</td>
+                <td class="align-middle" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">{{ participant.last_heartbeat_time }}</td>
+                <td class="align-middle" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">{{ participant.last_sync_time }}</td>
+                <td class="action_column">
+                    <a class="text-decoration-none" class="action_button"
+                        href="{% url 'download-data' %}?campaign_id={{ campaign.id }}&participant_id={{ participant.id }}">
+                        <img title="Download raw data" class="action_button_green"
+                            src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/button/download.png"
+                            alt="download">
+                    </a>
+                    <a class="text-decoration-none" class="action_button"
+                        href="{% url 'easytrack-monitor' %}?campaign_id={{ campaign.id }}&participant_id={{ participant.id }}&data_source_name=all">
+                        <img title="Monitor the participant {{ participant.email }}" class="action_button_green"
+                            src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/button/monitor.png"
+                            alt="EasyTrack monitor">
+                    </a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {% if debug and not joined %}
+        <div class="text-center">
+            <a type="button" class="btn btn-primary btn-lg" href="{% url 'dev-join-campaign' %}?campaign_id={{ campaign.id }}">Join as a participant</a>
+        </div>
+    {% endif %}
+
+    <script>
+        // participant (row) clicks
+        $(document).ready(function() {
+            const rows = document.querySelectorAll("td[data-href]");
+            rows.forEach(row => row.addEventListener("click", () => window.location.href = row.dataset.href));
+        });
+    </script>
+
+    <style>
+        /* action button styling */
+
+        img.action_button_green {
+            background: #2ecc71;
+            vertical-align: middle;
+            padding: 3px;
+            margin: 2px 0;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: larger;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        img.action_button_red {
+            background: orangered;
+            vertical-align: middle;
+            padding: 3px;
+            margin: 2px 0;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: larger;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        img.action_button_green:hover, img.action_button_red:hover {
+            background: #4285F4;
+            color: black;
+        }
+    </style>
+{% endblock %}

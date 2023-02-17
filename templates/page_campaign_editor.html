@@ -10,26 +10,25 @@
         {% csrf_token %}
         <input type="number" name="campaign_id" value="{% if edit_mode %}{{ campaign.id }}{% else %}-1{% endif %}" hidden>
         <table id="inputTable">
+            <tr><td><label for="name"><span style="color: red">*</span> Campaign title</label></tr>
             <tr>
-                <td><label for="name">Name</label>
                 <td><input id="name" type="text" name="name" placeholder="e.g., My First Data Collection Campaign" required value="{% if edit_mode %}{{ campaign.name }}{% endif %}"></td>
             </tr>
+            <tr><td><label for="notes">Description</label></tr>
             <tr>
-                <td><label for="notes">Notes on<br>the campaign</label>
                 <td><textarea name="notes" id="notes" cols="100" rows="10" placeholder="Notes on the campaign">{% if edit_mode %}{{ campaign.notes }}{% endif %}</textarea></td>
             </tr>
+            <tr><td><label for="startTime"><span style="color: red">*</span> Starting date and time</label></tr>
             <tr>
-                <td><label for="startTime">Start time</label>
                 <td><input name="startTime" id="startTime" type="datetime-local" required value="{% if edit_mode %}{{ campaign_start_time }}{% else %}{{ now_time }}{% endif %}"/></td>
             </tr>
+            <tr><td><label for="endTime"><span style="color: red">*</span> Ending date and time</label></tr>
             <tr>
-                <td><label for="endTime">End time</label>
                 <td><input name="endTime" id="endTime" type="datetime-local" required value="{% if edit_mode %}{{ campaign_end_time }}{% else %}{{ after_month_time }}{% endif %}"/></td>
             </tr>
+            <tr><td><label><span style="color: red">*</span> Campaign data sources</label></tr>
         </table>
         
-        <a id="addRowButton" onclick="onNewDataSourceClick()">NEW DATA SOURCE</a>
-
         <table id="dataSourceTable">
             <tr>
                 <th>Selected</th>
@@ -59,8 +58,10 @@
             {% endif %}
         </table>
 
+        <a id="addRowButton" onclick="onNewDataSourceClick()">NEW DATA SOURCE</a>
+
         <div>
-            <a href="{% url 'campaigns-list' %}" id="cancel_campaign_creation_button">Cancel</a>
+            <a href="{% url 'campaigns' %}" id="cancel_campaign_creation_button">Cancel</a>
             <input type="submit" value="{% if edit_mode %}Save changes{% else %}Create{% endif %}" id="create_campaign_button">
         </div>
     </form>
@@ -353,30 +354,35 @@
             color: orangered;
         }
 
-        table {
+        #inputTable {
             width: 100%;
             margin-left: auto;
             margin-right: auto;
             border-collapse: collapse;
             border-spacing: 0;
             margin-bottom: 20px;
-            text-align: center;
         }
 
-        #notes {
-            min-width: 60%;
-            max-width: 90%;
-            max-height: 60%;
-        }
-
-        #inputTable tr td input {
+        #inputTable input, #inputTable textarea {
             background: white;
             border: #ccc 1px solid;
             border-bottom: #ccc 2px solid;
             padding: 8px;
             color: black;
             font-size: 1em;
-            width: 90%;
+            width: 100%;
+        }
+
+        #inputTable textarea {
+            min-height: 100px;
+            max-height: 300px;
+        }
+
+        #inputTable label {
+            display: block;
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1.2em;
         }
 
         /* Cells in even rows (2,4,6...) are one color */
