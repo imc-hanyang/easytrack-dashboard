@@ -695,7 +695,7 @@ def handle_dataset_info(request):
         participants.sort(key = lambda p: p.id)
         return render(
           request = request,
-          template_name = 'page_campaign_info.html',
+          template_name = 'page_dataset_details.html',
           context = {
             'campaign': campaign,
             'data_sources': campaign_data_sources,
