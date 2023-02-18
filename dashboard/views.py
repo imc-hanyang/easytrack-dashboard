@@ -238,15 +238,17 @@ def handle_researchers_list(request):
           supervisors.append({'name': s.user.name, 'email': s.user.email})
         supervisors.sort(key = lambda x: x['name'])
 
-        return render(request = request,
-                      template_name = 'page_campaign_researchers.html',
-                      context = {
-                        'title': "%s's researchers" % campaign.name,
-                        'campaign': campaign,
-                        'researchers': supervisors,
-                        'id': user.id,
-                        'session_key': user.session_key
-                      })
+        return render(
+          request = request,
+          template_name = 'supervisors.html',
+          context = {
+            'title': "%s's researchers" % campaign.name,
+            'campaign': campaign,
+            'researchers': supervisors,
+            'id': user.id,
+            'session_key': user.session_key,
+          },
+        )
       else:
         return redirect(to = 'campaigns')
     else:

@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load humanize fix_localhost %}
+
+{% block content %}
+    <!-- Page title -->
+    <h3> {{campaign.name}}'s supervisors </h1>
+
+    <table class="table text-center table-hover">
+        <thead>
+            <tr>
+                <th class="name_column">Supervisor's name</th>
+                <th class="email_column">Supervisor's email address</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for researcher in researchers %}
+                <tr style="cursor: pointer">
+                    <!-- Supervisor's name -->
+                    <td class="supervisor align-middle" supervisor-email="{{researcher.email}}" title="{{ researcher.name }}">
+                        {{ researcher.name }}
+                    </td>
+
+                    <!-- Supervisor's email -->
+                    <td class="supervisor align-middle" supervisor-email="{{researcher.email}}" title="{{ researcher.email }}">
+                        {{ researcher.email }}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Button for adding a new supervisor -->
+    <div class="text-center">
+        <a type="button" class="btn btn-primary btn-lg" onclick="addSupervisorClick();">Add another supervisor</a>
+    </div>
+
+    <!-- Context menu -->
+    <div class="container">
+        <div>
+            <div class="dropdown-menu dropdown-menu-sm" id="context-menu">
+                <a id="btn_remove_supervisor" class="dropdown-item text-danger" style="cursor: pointer">Remove supervisor</a>
+              </div>
+        </div>
+    </div>
+
+    <script>
+        // function to add a new supervisor
+        function addSupervisorClick() {
+            // get email address via prompt
+            var email = prompt("Please enter the email address of the new supervisor");
+            if (email == null || email == "") {
+                return;
+            }
+            
+            // send request to add researcher using $.ajax
+            $.ajax({
+                url: "{% url 'manage-researchers' %}",
+                type: "GET",
+                data: {
+                    "csrfmiddlewaretoken": "{{ csrf_token }}",
+                    "campaign_id": {{ campaign.id }},
+                    "targetEmail": email,
+                    "action": "add"
+                },
+                success: function(data) {
+                    // alert success message
+                    alert(`Successfully added ${email} as a supervisor`);
+                    
+                    // reload page
+                    location.reload();
+                },
+                error: function(data) {
+                    // display error message
+                    alert("Error occurred. Please refresh and try again.");
+                }
+            });
+        }
+
+        // function to remove a supervisor
+        function removeSupervisorWithConfirmation(targetEmail) {
+            if (confirm("This is a destructive action. Proceed with supervisor removal?")) {
+                if (confirm(`This will prevent ${targetEmail} from supervising {{campaign.name}}. Do you confirm?`)) {
+                    $.ajax({
+                        url: "{% url 'manage-researchers' %}",
+                        type: "GET",
+                        data: {
+                            "csrfmiddlewaretoken": "{{ csrf_token }}",
+                            "campaign_id": {{ campaign.id }},
+                            "targetEmail": targetEmail,
+                            "action": "remove"
+                        },
+                        success: function(data) {
+                            // alert success message
+                            alert(`Successfully removed supervisor ${targetEmail} from {{campaign.name}}`);
+                            
+                            // reload page
+                            location.reload();
+                        },
+                        error: function(data) {
+                            // display error message
+                            alert("Error occurred. Please refresh and try again.");
+                        }
+                    });
+                }
+            }
+        }
+
+        // cancel context menu if clicked outside
+        $(document).click(function() {
+            if ($("#context-menu").hasClass("show")) {
+                $("#context-menu").removeClass("show").hide();
+            }
+        });
+
+        // show/hide context menu when supervisor row is right clicked
+        $('.supervisor').on('contextmenu', function(e) {
+            // show context menu and set its position
+            var top = e.pageY - 10;
+            var left = e.pageX - 90;
+            $("#context-menu").css({display: "block", top: top, left: left}).addClass("show");
+            
+            // get supervisor id from e element's supervisor-id attribute
+            const supervisorEmail = e.target.attributes['supervisor-email'].value;
+            
+            // shouldn't remove themselves
+            if (supervisorEmail == "{{request.user.email}}") {
+                $("#context-menu").removeClass("show").hide();
+                return false;
+            }
+            // shouldn't be able to make changes to owner / creator
+            if (supervisorEmail == "{{campaign.owner.email}}") {
+                $("#context-menu").removeClass("show").hide();
+                return false;
+            }
+            
+            // set supervisor id for context menu buttons
+            $('#btn_remove_supervisor').click(() => removeSupervisorWithConfirmation(supervisorEmail));
+            
+            // block default Webbrowser right click menu
+            return false;
+        }).on("click", function() {
+            // hide context menu if clicked outside
+            $("#context-menu").removeClass("show").hide();
+        });
+        
+        // context menu button clicks
+        $("#context-menu a").on("click", function() {
+            $(this).parent().removeClass("show").hide();
+        });
+    </script>
+{% endblock %}
