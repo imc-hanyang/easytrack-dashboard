@@ -11,7 +11,7 @@
                     Login with Google
                 </a>
 
-                <a href="{% url 'dev-login' %}" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                <a id="signInTestApi" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
                     Login with test account
                 </a>
             </div>
@@ -19,19 +19,20 @@
     </div>
 
     <script>
-        let gAuth; // Google Auth object
-
         $(document).init(function () {
-            
-            // upon clicking the login button, load the google auth2 api and then authorize the user
+
+            // Login button click
             $('#loginButton').click(function () {
+                // Load the google auth2 api
                 gapi.load('auth2', function () {
-                    // Retrieve the singleton for the GoogleAuth library and set up the client.
+                    
+                    // Login with google
                     gapi.auth2.authorize({
-                        client_id: '79296265957-khvficocpqmhajv3c5obiljo2k95jqt3.apps.googleusercontent.com',
+                        client_id: '{{GOOGLE_CLIENT_ID}}',
                         scope: "email profile openid",
                         response_type: 'id_token permission'
                     }, function (response) {
+                        // check if login failed
                         if (response.error) {
                             alert('Failed to login, please try again!'); // todo: error message modal instead
                             return;
@@ -39,40 +40,42 @@
 
                         // extract the id token from the response
                         let idToken = response.id_token;
-                        let redirectUrl = `${location.protocol}//${location.host}{% url 'login' %}?idToken=${idToken}`;
-                        
-                        // redirect to the login page with the id token
-                        window.location.replace(redirectUrl); // todo: any better way?
+
+                        // send the id token to the server for verification and login
+                        $.ajax({
+                            url: "{% url 'googleLoginApi' %}",
+                            type: "POST",
+                            data: {
+                                'id_token': idToken,
+                                'csrfmiddlewaretoken': '{{ csrf_token }}',
+                            },
+                            success: function (data) {
+                                window.location.reload();
+                            },
+                            error: function (data) {
+                                alert('Failed to login, please try again!'); // todo: error message modal instead
+                            }
+                        });
                     });
                 });
             });
-        });
 
-        function initGoogleApiClient() {
-            gapi.client.init({
-                'apiKey': 'AIzaSyC0RSyYQIVC0palvzQQ5YUEW6g1taUT2VY',
-                'clientId': '79296265957-khvficocpqmhajv3c5obiljo2k95jqt3.apps.googleusercontent.com',
-                'scope': "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid",
-            }).then(function () {
-                gAuth = gapi.auth2.getAuthInstance();
-                gAuth.isSignedIn.listen(updateSigninStatus);
+            // Test login button click
+            $('#signInTestApi').click(function() {
+                $.ajax({
+                    url: "{% url 'demoLoginApi' %}",
+                    type: "POST",
+                    data: {
+                        'csrfmiddlewaretoken': '{{ csrf_token }}',
+                    },
+                    success: function (data) {
+                        window.location.reload();
+                    },
+                    error: function (data) {
+                        alert('Failed to login, please try again!'); // todo: error message modal instead
+                    }
+                });
             });
-        }
-
-        function updateSigninStatus(isSignedIn) {
-            console.log('updateSigninStatus');
-            if (isSignedIn) {
-                // todo redirect here
-
-                let user = gAuth.currentUser;
-                console.log(`user: ${user}`);
-
-                let resp = user.getAuthResponse();
-                console.log(`resp: ${resp}`);
-
-                let idToken = resp.id_token;
-                console.log(`idToken: ${idToken}`);
-            }
-        }
+        });
     </script>
 {% endblock %}

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load humanize fix_localhost data_source_hreadable %}
+{% load humanize fix_localhost data_source_cols_hreadable %}
 
 {% block content %}
     <!-- Page title -->
@@ -89,7 +89,7 @@
             
                                     <!-- Data source columns -->
                                     <td class="data_source_cols_column">
-                                        {{ data_source.configurations|data_source_hreadable }}
+                                        {{ data_source.configurations|data_source_cols_hreadable }}
                                     </td>
             
                                     <td class="actions_column" style="display: none">
