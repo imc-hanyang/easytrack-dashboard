@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load humanize fix_localhost %}
+{% load humanize fix_localhost timestamp_hreadable %}
 
 {% block content %}
     
@@ -10,89 +10,120 @@
     <table class="table text-center table-hover">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Participation<br>duration</th>
-                <th>Amount of<br>samples</th>
-                <th>Latest<br>heartbeat time</th>
-                <th>Latest<br>sync time</th>
-                <th>Action</th>
+                <th>Participant ID</th>
+                <th>Participant name</th>
+                <th>Participation duration</th>
+                <th>Amount of data records</th>
+                <th>Last heartbeat time</th>
+                <th>Last sync time</th>
             </tr>
         </thead>
         <tbody>
             {% for participant in participants %}
             <tr style="cursor: pointer">
-                <td class="align-middle" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">{{ participant.id }}</td>
-                <td class="align-middle" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}" title="{{ participant.email }}">{{ participant.name }}</td>
-                <td class="align-middle" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}" >{{ participant.day_no }} days</td>
-                <td class="align-middle" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}" {% if participant.amount_of_data == 0 %} style="color: red;" {% endif %}>{{ participant.amount_of_data | intcomma }} samples</td>
-                <td class="align-middle" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">{{ participant.last_heartbeat_time }}</td>
-                <td class="align-middle" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">{{ participant.last_sync_time }}</td>
-                <td class="action_column">
-                    <a class="text-decoration-none" class="action_button"
-                        href="{% url 'download-data' %}?campaign_id={{ campaign.id }}&participant_id={{ participant.id }}">
-                        <img title="Download raw data" class="action_button_green"
-                            src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/button/download.png"
-                            alt="download">
-                    </a>
-                    <a class="text-decoration-none" class="action_button"
-                        href="{% url 'easytrack-monitor' %}?campaign_id={{ campaign.id }}&participant_id={{ participant.id }}&data_source_name=all">
-                        <img title="Monitor the participant {{ participant.email }}" class="action_button_green"
-                            src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/button/monitor.png"
-                            alt="EasyTrack monitor">
-                    </a>
+                <!-- Participant ID -->
+                <td class="participant align-middle" participant-id="{{participant.id}}" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">
+                    {{ participant.id }}
+                </td>
+
+                <!-- Participant name -->
+                <td class="participant align-middle" participant-id="{{participant.id}}" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}" title="{{ participant.email }}">
+                    {{ participant.name }}
+                </td>
+
+                <!-- Participation duration -->
+                <td class="participant align-middle" participant-id="{{participant.id}}" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">
+                    {% if participant.day_no == 0 %}
+                        <span style="color: blue;">started today</span>
+                    {% else %}
+                        {{ participant.day_no }} days
+                    {% endif %}
+                </td>
+
+                <!-- Amount of data -->
+                <td class="participant align-middle" participant-id="{{participant.id}}" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">
+                    {% if participant.amount_of_data == 0 %}
+                        <span style="color: red;">no records</span>
+                    {% else %}
+                        {{ participant.amount_of_data|intcomma }}
+                    {% endif %}
+                </td>
+
+                <!-- Last heartbeat time -->
+                <td class="participant align-middle" participant-id="{{participant.id}}" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">
+                    {{participant.last_heartbeat_time}}
+                </td>
+
+                <!-- Last sync time -->
+                <td class="participant align-middle" participant-id="{{participant.id}}" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">
+                    {% if participant.last_sync_time|timestamp_hreadable == 'n/a' %}
+                        <span style="color: red;">never</span>
+                    {% else %}
+                        {{participant.last_sync_time|timestamp_hreadable}}
+                    {% endif %}
                 </td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
 
+    <!-- 'Join as a participant' button -->
     {% if debug and not joined %}
         <div class="text-center">
             <a type="button" class="btn btn-primary btn-lg" href="{% url 'dev-join-campaign' %}?campaign_id={{ campaign.id }}">Join as a participant</a>
         </div>
     {% endif %}
 
+    <!-- Context menu -->
+    <div class="container">
+        <div>
+            <div class="dropdown-menu dropdown-menu-sm" id="context-menu">
+                <a id="btn_data_sources" class="dropdown-item" style="cursor: pointer">Data sources</a>
+                <a id="btn_download_dataset" class="dropdown-item" style="cursor: pointer">Download dataset</a>
+                <a id="btn_monitor_dq" class="dropdown-item" style="cursor: pointer">Monitor Data Quality</a>
+              </div>
+        </div>
+    </div>
+
     <script>
-        // participant (row) clicks
-        $(document).ready(function() {
-            const rows = document.querySelectorAll("td[data-href]");
-            rows.forEach(row => row.addEventListener("click", () => window.location.href = row.dataset.href));
+        // cancel context menu if clicked outside
+        $(document).click(function() {
+            if ($("#context-menu").hasClass("show")) {
+                $("#context-menu").removeClass("show").hide();
+            }
+        });
+        
+        // open participant's data sources when a participant (row) is clicked
+        $('td[data-href]').click(function () {
+            window.location.href = $(this).attr('data-href');
+        });
+
+        // show/hide context menu on participant row is right clicked
+        $('.participant').on('contextmenu', function(e) {
+            // show context menu and set its position
+            var top = e.pageY - 10;
+            var left = e.pageX - 90;
+            $("#context-menu").css({display: "block", top: top, left: left}).addClass("show");
+            
+            
+            // get participant id from e element's participant-id attribute
+            const participantId = e.target.attributes['participant-id'].value;
+            
+            // set campaign id for context menu buttons
+            $('#btn_data_sources').click(() => window.location.href = e.target.attributes['data-href'].value);
+            $("#btn_download_dataset").attr('href', `{% url 'download-data' %}?campaign_id={{campaign.id}}&participant_id=${participantId}`);
+            $("#btn_monitor_dq").attr('href', `{% url 'easytrack-monitor' %}?campaign_id={{campaign.id}}&participant_id=${participantId}&data_source_id=all`);
+            
+            // block default Webbrowser right click menu
+            return false;
+        }).on("click", function() {
+            // hide context menu if clicked outside
+            $("#context-menu").removeClass("show").hide();
+        });
+        
+        // context menu button clicks
+        $("#context-menu a").on("click", function() {
+            $(this).parent().removeClass("show").hide();
         });
     </script>
-
-    <style>
-        /* action button styling */
-
-        img.action_button_green {
-            background: #2ecc71;
-            vertical-align: middle;
-            padding: 3px;
-            margin: 2px 0;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: larger;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        img.action_button_red {
-            background: orangered;
-            vertical-align: middle;
-            padding: 3px;
-            margin: 2px 0;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: larger;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        img.action_button_green:hover, img.action_button_red:hover {
-            background: #4285F4;
-            color: black;
-        }
-    </style>
 {% endblock %}

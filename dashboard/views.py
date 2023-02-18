@@ -277,26 +277,27 @@ def handle_participants_data_list(request):
             stats = wrappers.ParticipantStats(participant = participant)
             for data_source in slc.get_campaign_data_sources(campaign = campaign):
               data_source_stats = stats[data_source]
-              last_sync_ts = utils.datetime_to_str(timestamp = data_source_stats.last_sync_time, js_format = False)
               data_sources.append({
                 'id': data_source.id,
                 'name': data_source.name,
                 'icon_name': data_source.icon_name,
                 'configurations': data_source.configurations,
                 'amount_of_data': data_source_stats.amount_of_samples,
-                'last_sync_time': last_sync_ts[:last_sync_ts.rindex(':')]
+                'last_sync_time': data_source_stats.last_sync_time,
               })
             data_sources.sort(key = lambda x: x['name'])
-            return render(request = request,
-                          template_name = 'data_source_stats.html',
-                          context = {
-                            'title': f'Data submitted by {participant_user.email} (ID = {participant_user.id})',
-                            'campaign': campaign,
-                            'participant': participant_user,
-                            'data_sources': data_sources,
-                            'id': user.id,
-                            'session_key': user.session_key
-                          })
+            return render(
+              request = request,
+              template_name = 'data_source_stats.html',
+              context = {
+                'title': f'Data submitted by {participant_user.email} (ID = {participant_user.id})',
+                'campaign': campaign,
+                'participant': participant_user,
+                'data_sources': data_sources,
+                'id': user.id,
+                'session_key': user.session_key,
+              },
+            )
           else:
             return redirect(to = 'campaigns')
         else:
@@ -342,8 +343,8 @@ def handle_raw_samples_list(request):
     if 'campaign_id' in request.GET and str(request.GET['campaign_id']).isdigit():
       campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
       if campaign and slc.is_supervisor(user = user, campaign = campaign):
-        if 'email' in request.GET:
-          db_participant_user = slc.find_user(user_id = None, email = request.GET['email'])
+        if 'participant_id' in request.GET and request.GET['participant_id'].isdigit():
+          db_participant_user = slc.find_user(user_id = int(request.GET['participant_id']), email = None)
           if db_participant_user is not None and slc.is_participant(user=db_participant_user, campaign=campaign) and \
            'from_timestamp' in request.GET and 'data_source_id' in request.GET and utils.str_is_numeric(request.GET['from_timestamp']) and utils.str_is_numeric(request.GET['data_source_id']):
             participant = slc.get_participant(
@@ -557,31 +558,31 @@ def handle_easytrack_monitor(request):
                                         microsecond = 0)
             till_ts = from_ts + datetime.timedelta(hours = 24)
 
-        if 'participant_id' in request.GET and utils.str_is_numeric(request.GET['participant_id']):
+        if 'participant_id' in request.GET and request.GET['participant_id'].isdigit():
           selected_user = slc.find_user(user_id = int(request.GET['participant_id']), email = None)
           if selected_user is not None:
             selected_participant = slc.get_participant(user = selected_user, campaign = campaign)
 
         WINDOW_SIZE = td(hours = 1)   # 1-hour sliding window
-        if 'data_source_name' in request.GET:
-          data_source_name = request.GET['data_source_name']
-          if data_source_name == 'all':
+        if 'data_source_id' in request.GET and request.GET['data_source_id'].isdigit():
+          data_source = slc.find_data_source(data_source_id = int(request.GET['data_source_id']), name = None)
+          if data_source is not None:
             hourly_stats = collections.defaultdict(int)
             # region compute hourly stats
-            for participant in (all_participants if selected_participant is None else [selected_participant]):
-              for data_source in all_data_sources:
-                data_table = wrappers.DataTable(participant = participant, data_source = data_source)
-                ts = from_ts
-                while ts < till_ts:
-                  amount = data_table.select_count(
-                    from_ts = ts,
-                    till_ts = ts + WINDOW_SIZE,
-                  )
-                  hourly_stats[ts.hour] += amount
-                  ts += WINDOW_SIZE
+            for participant in (all_participants if not selected_participant or selected_participant.id == 'all' else
+                                [selected_participant]):
+              data_table = wrappers.DataTable(participant = participant, data_source = data_source)
+              ts = from_ts
+              while ts < till_ts:
+                amount = data_table.select_count(
+                  from_ts = ts,
+                  till_ts = ts + WINDOW_SIZE,
+                )
+                hourly_stats[ts.hour] += amount
+                ts += WINDOW_SIZE
             # endregion
 
-            plot_data_source = {'name': 'all campaign data sources combined'}
+            plot_data_source = EnhancedDataSource(db_data_source = data_source)
             # region plot hourly stats
             x = []
             y = []
@@ -600,7 +601,7 @@ def handle_easytrack_monitor(request):
             fig = go.Figure([go.Bar(x = x, y = y)])
             fig.update_yaxes(range = [0, max_amount])
             plot_str = plotly.offline.plot(fig, auto_open = False, output_type = "div")
-            plot_data_source['plot'] = plot_str
+            plot_data_source.attach_plot(plot_str = plot_str)
             # endregion
 
             return render(
@@ -617,60 +618,58 @@ def handle_easytrack_monitor(request):
               },
             )
           else:
-            data_source = slc.find_data_source(data_source_id = None, name = data_source_name)
-            if data_source is not None:
-              hourly_stats = collections.defaultdict(int)
-              # region compute hourly stats
-              for participant in (all_participants if not selected_participant or selected_participant.id == 'all' else
-                                  [selected_participant]):
-                data_table = wrappers.DataTable(participant = participant, data_source = data_source)
-                ts = from_ts
-                while ts < till_ts:
-                  amount = data_table.select_count(
-                    from_ts = ts,
-                    till_ts = ts + WINDOW_SIZE,
-                  )
-                  hourly_stats[ts.hour] += amount
-                  ts += WINDOW_SIZE
-              # endregion
+            return redirect(to = 'campaigns')
+        elif 'data_source_id' not in request.GET or request.GET['data_source_id'] == 'all':
+          hourly_stats = collections.defaultdict(int)
+          # region compute hourly stats
+          for participant in (all_participants if selected_participant is None else [selected_participant]):
+            for data_source in all_data_sources:
+              data_table = wrappers.DataTable(participant = participant, data_source = data_source)
+              ts = from_ts
+              while ts < till_ts:
+                amount = data_table.select_count(
+                  from_ts = ts,
+                  till_ts = ts + WINDOW_SIZE,
+                )
+                hourly_stats[ts.hour] += amount
+                ts += WINDOW_SIZE
+          # endregion
 
-              plot_data_source = EnhancedDataSource(db_data_source = data_source)
-              # region plot hourly stats
-              x = []
-              y = []
-              max_amount = 10
-              hours = list(hourly_stats.keys())
-              hours.sort()
-              for hour in hours:
-                amount = hourly_stats[hour]
-                if hour < 13:
-                  hour = f'{hour} {"pm" if hour == 12 else "am"}'
-                else:
-                  hour = f'{hour % 12} pm'
-                x += [hour]
-                y += [amount]
-                max_amount = max(max_amount, amount)
-              fig = go.Figure([go.Bar(x = x, y = y)])
-              fig.update_yaxes(range = [0, max_amount])
-              plot_str = plotly.offline.plot(fig, auto_open = False, output_type = "div")
-              plot_data_source.attach_plot(plot_str = plot_str)
-              # endregion
-
-              return render(
-                request = request,
-                template_name = 'easytrack_monitor.html',
-                context = {
-                  'title': 'EasyTracker',
-                  'campaign': campaign,
-                  'plot_date': f'{from_ts.year}-{from_ts.month:02}-{from_ts.day:02}',
-                  'participants': all_participants,
-                  'plot_participant': selected_participant,
-                  'all_data_sources': all_data_sources,
-                  'plot_data_source': plot_data_source
-                },
-              )
+          plot_data_source = {'name': 'all campaign data sources combined'}
+          # region plot hourly stats
+          x = []
+          y = []
+          max_amount = 10
+          hours = list(hourly_stats.keys())
+          hours.sort()
+          for hour in hours:
+            amount = hourly_stats[hour]
+            if hour < 13:
+              hour = f'{hour} {"pm" if hour == 12 else "am"}'
             else:
-              return redirect(to = 'campaigns')
+              hour = f'{hour % 12} pm'
+            x += [hour]
+            y += [amount]
+            max_amount = max(max_amount, amount)
+          fig = go.Figure([go.Bar(x = x, y = y)])
+          fig.update_yaxes(range = [0, max_amount])
+          plot_str = plotly.offline.plot(fig, auto_open = False, output_type = "div")
+          plot_data_source['plot'] = plot_str
+          # endregion
+
+          return render(
+            request = request,
+            template_name = 'easytrack_monitor.html',
+            context = {
+              'title': 'EasyTracker',
+              'campaign': campaign,
+              'plot_date': f'{from_ts.year}-{from_ts.month:02}-{from_ts.day:02}',
+              'participants': all_participants,
+              'plot_participant': selected_participant,
+              'all_data_sources': all_data_sources,
+              'plot_data_source': plot_data_source
+            },
+          )
         else:
           return redirect(to = 'campaigns')
       else:
