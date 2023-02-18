@@ -19,10 +19,7 @@ from wsgiref.util import FileWrapper
 import requests
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import logout as dj_logout
-from django.contrib.auth import login as dj_login
-from django.contrib.auth import authenticate as dj_authenticate
-from django.contrib.auth.models import User
+from django.contrib.auth import logout
 from django.http import StreamingHttpResponse
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
@@ -36,195 +33,148 @@ from easytrack import utils
 # app
 from dashboard.models import EnhancedDataSource
 from dashboard import utils as dutils
+from dashboard import forms
 
 
 @require_http_methods(['GET'])
-def handle_login(request):
-    if request.user.is_authenticated:
-        user = slc.find_user(user_id=None, email=request.user.email)
-        if user is None:
-            print('new user : ', end='')
-            session_key = utils.md5(
-                value=f'{request.user.email}{utils.now_us()}')
-            user = svc.create_user(
-                name=request.user.get_full_name(),
-                email=request.user.email,
-                session_key=session_key,
-            )
-            if user is None:
-                dj_logout(request=request)
-            else:
-                return redirect(to='campaigns')
-        else:
-            return redirect(to='campaigns')
-    return render(
-        request=request,
-        template_name='login.html',
-        context={'title': 'Authentication'},
-    )
+def login(request):
+    '''Renders login page.'''
 
-
-@require_http_methods(['GET'])
-def handle_development_login_api(request):
-    dev_email = 'dev@easytrack.com'
-    user = slc.find_user(
-        user_id=None,
-        email=request.user.email
-        if request.user.is_authenticated else dev_email,
-    )
-    if user is None:
-        print('new user : ', end='')
-        timestamp = datetime.datetime.now().timestamp()
-        session_key = utils.md5(value=f'{dev_email}{timestamp}')
-        user = svc.create_user(
-            name='Developer',
-            email=dev_email,
-            session_key=session_key,
-        )
-        if user is None:
-            dj_logout(request=request)
-        else:
-            if User.objects.filter(email=dev_email).exists():
-                dj_user = User.objects.get(email=dev_email)
-            else:
-                dj_user = User.objects.create_user(
-                    username=dev_email,
-                    email=dev_email,
-                    password=dev_email,
-                    first_name='Developer',
-                )
-            if dj_authenticate(username=dev_email, password=dev_email):
-                dj_login(
-                    request=request,
-                    user=dj_user,
-                    backend='django.contrib.auth.backends.ModelBackend',
-                )
-                return redirect(to='campaigns')
-            else:
-                return redirect(to='login')
-    else:
-        if User.objects.filter(email=dev_email).exists():
-            dj_user = User.objects.get(email=dev_email)
-        else:
-            dj_user = User.objects.create_user(
-                username=dev_email,
-                email=dev_email,
-                password=dev_email,
-                first_name='Developer',
-            )
-            dj_user.save()
-        if dj_authenticate(username=dev_email, password=dev_email):
-            dj_login(
-                request=request,
-                user=dj_user,
-                backend='django.contrib.auth.backends.ModelBackend',
-            )
-            return redirect(to='campaigns')
-        else:
-            return redirect(to='login')
-
-
-@login_required
-@require_http_methods(['GET', 'POST'])
-def handle_logout_api(request):
-    dj_logout(request=request)
-    return redirect(to='login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_campaigns_list(request):
-    user = slc.find_user(user_id=None, email=request.user.email)
-    if user is not None:
-        campaigns = list()
-        for c in slc.get_supervisor_campaigns(user=user):
-            participantsCnt = slc.get_campaign_participants_count(campaign=c)
-            campaigns.append({
-                'id': c.id,
-                'name': c.name,
-                'participants': participantsCnt,
-                'created_by_me': c.owner == user
-            })
-        print('%s opened the main page' % request.user.email)
-        campaigns.sort(key=lambda x: x['id'])
-
+    # user is not authenticated -> render login page
+    if not request.user.is_authenticated:
         return render(
             request=request,
-            template_name='campaigns.html',
-            context={
-                'title': "%s's campaigns" % request.user.get_full_name(),
-                'my_campaigns': campaigns,
-                'id': user.id,
-                'session_key': user.session_key
-            },
+            template_name='login.html',
+            context={'title': 'Authentication'},
         )
-    else:
-        dj_logout(request=request)
-        return redirect(to='login')
+
+    # user is authenticated -> assert that user is valid
+    assert slc.find_user(user_id=None, email=request.user.email) is not None
+
+    # user is authenticated -> redirect to campaigns page
+    return redirect(to='campaigns')
 
 
 @login_required
 @require_http_methods(['GET'])
-def handle_participants_list(request):
-    user = slc.find_user(user_id=None, email=request.user.email)
-    if user is not None:
-        if 'id' in request.GET and str(request.GET['id']).isdigit():
-            campaign = slc.get_campaign(campaign_id=int(request.GET['id']))
-            if campaign and slc.is_supervisor(user=user, campaign=campaign):
-                # check if data is submitted by user or researchers
-                data_sources = slc.get_campaign_data_sources(campaign=campaign)
-                if len(data_sources) == 0:
-                    return redirect(
-                        to=
-                        'https://drive.google.com/drive/folders/1rho3la0tfZI_YLp4Lkq8MwuLF7K9SNIS'
-                    )
-                else:
-                    # campaign easytrack page
-                    participants = list()
-                    for p in slc.get_campaign_participants(campaign=campaign):
-                        stats = wrappers.ParticipantStats(participant=p)
-                        participants.append({
-                            'id':
-                            p.user.id,
-                            'name':
-                            p.user.name,
-                            'email':
-                            p.user.email,
-                            'day_no':
-                            stats.participation_duration,
-                            'amount_of_data':
-                            stats.amount_of_data,
-                            'last_heartbeat_time':
-                            p.last_heartbeat_ts,
-                            'last_sync_time':
-                            stats.last_sync_ts,
-                        })
-                    participants.sort(key=lambda x: x['id'])
-                    return render(
-                        request=request,
-                        template_name='participants.html',
-                        context={
-                            'title':
-                            "%s's participants" % campaign.name,
-                            'campaign':
-                            campaign,
-                            'participants':
-                            participants,
-                            'id':
-                            user.id,
-                            'session_key':
-                            user.session_key,
-                            'joined':
-                            slc.is_participant(user=user, campaign=campaign)
-                        },
-                    )
-            else:
-                return redirect(to='campaigns')
-        else:
-            return redirect(to='campaigns')
-    else:
-        dj_logout(request=request)
-        return redirect(to='login')
+def campaigns(request):
+    '''Renders campaigns page.'''
+
+    # validate the form
+    form = forms.CampaignsForm({
+        'email':
+        request.user.email,
+        'is_authenticated':
+        request.user.is_authenticated,
+    })
+    if not form.is_valid():
+        logout(request)  # invalid user -> invalidate session (weird)
+        return redirect(to='handle_login')
+    user, campaigns = form.to_python()
+
+    # render the campaigns page
+    return render(
+        request=request,
+        template_name='campaigns.html',
+        context={
+            'user': user,
+            'campaigns': campaigns,
+        },
+    )
+
+
+@login_required
+@require_http_methods(['GET'])
+def participants(request):
+    '''Renders participants page.'''
+
+    # validate the form
+    form_data = request.GET.copy()
+    form_data['email'] = request.user.email
+    form = forms.CampaignParticipantsForm(form_data)
+    if not form.is_valid():
+        return redirect(to='campaigns')
+    user, campaign, participants = form.to_python()
+
+    # get campaign participant statistics
+    participants_stats = []
+    for participant in participants:
+        stats = wrappers.ParticipantStats(participant=participant)
+        participants_stats.append({
+            'participant_id': participant.user.id,
+            'participant_name': participant.user.name,
+            'participant_email': participant.user.email,
+            'participation_day': stats.participation_duration,
+            'amount_of_data': stats.amount_of_data,
+            'last_heartbeat_time': participant.last_heartbeat_ts,
+            'last_sync_time': stats.last_sync_ts,
+        })
+    participants_stats.sort(key=lambda x: x['participant_id'])
+
+    # render the participants page
+    return render(
+        request=request,
+        template_name='participants.html',
+        context={
+            'user': user,
+            'campaign': campaign,
+            'participants_stats': participants_stats,
+        },
+    )
+
+
+@login_required
+@require_http_methods(['GET'])
+def data_sources(request):
+    '''Renders data sources page.'''
+
+    # validate the form
+    form_data = request.GET.copy()
+    form_data['email'] = request.user.email
+    form = forms.ParticipantDataSourcesForm(form_data)
+    if not form.is_valid():
+        return redirect(to='campaigns')
+    user, campaign, participant, data_source_stats = form.to_python()
+
+    # render the data sources page
+    return render(
+        request=request,
+        template_name='data_source_stats.html',
+        context={
+            'user': user,
+            'campaign': campaign,
+            'participant': participant.user,
+            'data_sources': data_source_stats,
+        },
+    )
+
+
+@login_required
+@require_http_methods(['GET'])
+def data_records(request):
+    '''Renders (raw) data records page.'''
+
+    # validate the form
+    form_data = request.GET.copy()
+    form_data['email'] = request.user.email
+    form = forms.DataRecordsForm(form_data)
+    if not form.is_valid():
+        return redirect(to='campaigns')
+    user, campaign, participant, data_source, data_records, last_timestamp = form.to_python(
+    )
+
+    return render(
+        request=request,
+        template_name='data_records.html',
+        context={
+            'user': user,
+            'campaign': campaign,
+            'participant': participant.user,
+            'data_source': data_source,
+            'data_records': data_records,
+            'last_timestamp': utils.datetime_to_millis(last_timestamp),
+        },
+    )
 
 
 @login_required
@@ -282,185 +232,7 @@ def handle_researchers_list(request):
         else:
             return redirect(to='campaigns')
     else:
-        dj_logout(request=request)
-        return redirect(to='login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_participants_data_list(request):
-    user = slc.find_user(user_id=None, email=request.user.email)
-    if user is not None:
-        if 'campaign_id' in request.GET and str(
-                request.GET['campaign_id']).isdigit():
-            campaign = slc.get_campaign(
-                campaign_id=int(request.GET['campaign_id']))
-            if campaign and slc.is_supervisor(user=user, campaign=campaign):
-                if 'participant_id' in request.GET and utils.str_is_numeric(
-                        request.GET['participant_id']):
-                    participant_user = slc.find_user(
-                        user_id=int(request.GET['participant_id']),
-                        email=None,
-                    )
-                    participant = None
-                    if participant_user:
-                        participant = slc.get_participant(
-                            user=participant_user, campaign=campaign)
-                    if participant is not None:
-                        data_sources = list()
-                        stats = wrappers.ParticipantStats(
-                            participant=participant)
-                        for data_source in slc.get_campaign_data_sources(
-                                campaign=campaign):
-                            data_source_stats = stats[data_source]
-                            data_sources.append({
-                                'id':
-                                data_source.id,
-                                'name':
-                                data_source.name,
-                                'icon_name':
-                                data_source.icon_name,
-                                'configurations':
-                                data_source.configurations,
-                                'amount_of_data':
-                                data_source_stats.amount_of_samples,
-                                'last_sync_time':
-                                data_source_stats.last_sync_time,
-                            })
-                        data_sources.sort(key=lambda x: x['name'])
-                        return render(
-                            request=request,
-                            template_name='data_source_stats.html',
-                            context={
-                                'title':
-                                f'Data submitted by {participant_user.email} (ID = {participant_user.id})',
-                                'campaign': campaign,
-                                'participant': participant_user,
-                                'data_sources': data_sources,
-                                'id': user.id,
-                                'session_key': user.session_key,
-                            },
-                        )
-                    else:
-                        return redirect(to='campaigns')
-                else:
-                    return redirect(to='campaigns')
-            else:
-                return redirect(to='campaigns')
-        else:
-            return redirect(to='campaigns')
-    else:
-        dj_logout(request=request)
-        return redirect(to='login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def dev_join_campaign(request):
-    user = slc.find_user(user_id=None, email=request.user.email)
-    if user is not None:
-        if 'campaign_id' in request.GET and str(
-                request.GET['campaign_id']).isdigit():
-            campaign = slc.get_campaign(
-                campaign_id=int(request.GET['campaign_id']))
-            if campaign and slc.is_supervisor(user=user, campaign=campaign):
-                svc.add_campaign_participant(
-                    add_user=user,
-                    campaign=campaign,
-                )
-                return redirect(to='campaigns')
-            else:
-                return redirect(to='campaigns')
-        else:
-            return redirect(to='campaigns')
-    else:
-        dj_logout(request=request)
-        return redirect(to='login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_raw_samples_list(request):
-    strip_ts = lambda x: x[:x.rindex(':')]
-
-    user = slc.find_user(user_id=None, email=request.user.email)
-    if user is not None:
-        if 'campaign_id' in request.GET and str(
-                request.GET['campaign_id']).isdigit():
-            campaign = slc.get_campaign(
-                campaign_id=int(request.GET['campaign_id']))
-            if campaign and slc.is_supervisor(user=user, campaign=campaign):
-                if 'participant_id' in request.GET and request.GET[
-                        'participant_id'].isdigit():
-                    db_participant_user = slc.find_user(user_id=int(
-                        request.GET['participant_id']),
-                                                        email=None)
-                    if db_participant_user is not None and slc.is_participant(user=db_participant_user, campaign=campaign) and \
-                     'from_timestamp' in request.GET and 'data_source_id' in request.GET and utils.str_is_numeric(request.GET['from_timestamp']) and utils.str_is_numeric(request.GET['data_source_id']):
-                        participant = slc.get_participant(
-                            user=user,
-                            campaign=campaign,
-                        )
-                        from_timestamp = utils.millis_to_datetime(
-                            int(request.GET['from_timestamp']))
-                        data_source = slc.find_data_source(
-                            data_source_id=int(request.GET['data_source_id']),
-                            name=None,
-                        )
-                        if data_source is not None:
-                            data_table = wrappers.DataTable(
-                                participant=participant,
-                                data_source=data_source)
-                            records = []
-                            for i, record in enumerate(
-                                    data_table.select_next_k(
-                                        from_ts=from_timestamp,
-                                        limit=500,
-                                    )):
-                                value = json.dumps(record.val)
-                                # 5KB (e.g., binary files)
-                                if len(value) > 5 * 1024:
-                                    value = f'[ {len(value):,} byte data record ]'
-                                records += [{
-                                    'row':
-                                    i + 1,
-                                    'timestamp':
-                                    strip_ts(
-                                        utils.datetime_to_str(
-                                            timestamp=record.ts,
-                                            js_format=False)),
-                                    'value':
-                                    value,
-                                }]
-                                from_timestamp = record.ts
-                            return render(
-                                request=request,
-                                template_name='page_raw_data_view.html',
-                                context={
-                                    'title':
-                                    data_source.name,
-                                    'records':
-                                    records,
-                                    'from_timestamp':
-                                    utils.datetime_to_millis(from_timestamp),
-                                    'id':
-                                    user.id,
-                                    'session_key':
-                                    user.session_key,
-                                },
-                            )
-                        else:
-                            return redirect(to='campaigns')
-                    else:
-                        return redirect(to='campaigns')
-                else:
-                    return redirect(to='campaigns')
-            else:
-                return redirect(to='campaigns')
-        else:
-            return redirect(to='campaigns')
-    else:
-        dj_logout(request=request)
+        logout(request=request)
         return redirect(to='login')
 
 
@@ -603,7 +375,7 @@ def handle_campaign_editor(request):
         else:
             return redirect(to='campaigns')
     else:
-        dj_logout(request=request)
+        logout(request=request)
         return redirect(to='login')
 
 
@@ -784,7 +556,7 @@ def handle_easytrack_monitor(request):
         else:
             return redirect(to='campaigns')
     else:
-        dj_logout(request=request)
+        logout(request=request)
         return redirect(to='login')
 
 
@@ -822,7 +594,7 @@ def handle_dataset_info(request):
         else:
             return redirect(to='campaigns')
     else:
-        dj_logout(request=request)
+        logout(request=request)
         return redirect(to='login')
 
 
@@ -844,7 +616,7 @@ def handle_delete_campaign_api(request):
         else:
             return redirect(to='campaigns')
     else:
-        dj_logout(request=request)
+        logout(request=request)
         return redirect(to='login')
 
 
@@ -901,7 +673,7 @@ def handle_download_data_api(request):
         else:
             return redirect(to='campaigns')
     else:
-        dj_logout(request=request)
+        logout(request=request)
         return redirect(to='login')
 
 
@@ -1005,7 +777,7 @@ def handle_download_csv_api(request):
         else:
             return redirect(to='campaigns')
     else:
-        dj_logout(request=request)
+        logout(request=request)
         return redirect(to='login')
 
 
@@ -1054,7 +826,7 @@ def handle_upload_csv_api(request):
         else:
             return redirect(to='campaigns')
     else:
-        dj_logout(request=request)
+        logout(request=request)
         return redirect(to='login')
 
 
@@ -1108,7 +880,7 @@ def handle_download_dataset_api(request):
         else:
             return redirect(to='campaigns')
     else:
-        dj_logout(request=request)
+        logout(request=request)
         return redirect(to='login')
 
 

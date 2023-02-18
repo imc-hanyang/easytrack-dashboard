@@ -136,8 +136,13 @@ class LoginTest(generics.GenericAPIView):
                 password=email,
             )
 
-        # authenticate the user (creates session for further requests)
-        authenticate(username=email, password=email)
+        # authenticate request with user's credentials
+        authenticate(
+            request=request,
+            username=email,
+            password=email,
+        )
+        # login the user (creates session for further requests)
         login(
             request=request,
             user=user,
@@ -171,5 +176,57 @@ class Logout(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
+        logout(request=request)
+        return response.Response(status=status.HTTP_201_CREATED)
+
+
+class JoinAsParticipant(generics.GenericAPIView):
+    '''Researcher/supervisor also joins a campaign as a participant.'''
+
+    class InputSerializer(serializers.Serializer):
+        '''Input serializer for JoinAsParticipant view.'''
+
+        email = serializers.EmailField(required=True)
+        campaign_id = serializers.IntegerField(required=True)
+
+        def validate(self, attrs):
+            '''Validate input data.'''
+
+            # check if user exists
+            user = slc.find_user(user_id=None, email=attrs['email'])
+            if not user:
+                raise ValidationError('User does not exist')
+
+            # check if campaign exists
+            campaign = slc.get_campaign(campaign_id=attrs['campaign_id'])
+            if not campaign:
+                raise ValidationError('Campaign does not exist')
+            if not slc.is_supervisor(campaign=campaign, user=user):
+                raise ValidationError(
+                    'User is not a supervisor'
+                )  # should be available to researchers only
+
+            # check if user is already a participant
+            participant = slc.get_participant(campaign=campaign, user=user)
+            if participant:
+                raise ValidationError('User is already a participant')
+
+            return attrs
+
+        class Meta:
+            fields = '__all__'
+
+    http_method_names = ['post']
+    serializer_class = InputSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        serializer = JoinAsParticipant.InputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return response.Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         logout(request=request)
         return response.Response(status=status.HTTP_201_CREATED)

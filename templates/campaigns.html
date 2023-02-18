@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load humanize fix_localhost %}
+{% load humanize fix_localhost campaign_participants_count %}
 
 {% block content %}
 
@@ -18,20 +18,20 @@
         </thead>
         
         <tbody>
-            {% for campaign in my_campaigns %}
+            {% for campaign in campaigns %}
                 <tr style="cursor: pointer">
                     <!-- Campaign ID -->
-                    <td class="campaign align-middle" campaign-id="{{campaign.id}}" created-by-me="{{campaign.created_by_me}}" data-href="{% url 'participants' %}?id={{ campaign.id }}">
+                    <td class="campaign align-middle" campaign-id="{{campaign.id}}" created-by-me="{% if campaign.owner == user %}true{% else %}false{% endif %}" data-href="{% url 'participants' %}?campaign_id={{ campaign.id }}">
                         {{campaign.id}}
                     </td>
 
                     <!-- Campaign name/title -->
-                    <td class="campaign align-middle" campaign-id="{{campaign.id}}" created-by-me="{{campaign.created_by_me}}" title="{{ campaign.name }}" data-href="{% url 'participants' %}?id={{ campaign.id }}">
+                    <td class="campaign align-middle" campaign-id="{{campaign.id}}" created-by-me="{% if campaign.owner == user %}true{% else %}false{% endif %}" title="{{ campaign.name }}" data-href="{% url 'participants' %}?campaign_id={{ campaign.id }}">
                         {{campaign.name|truncatechars:40}}
                     </td>
 
                     <!-- Campaign description/notes -->
-                    <td class="campaign align-middle" campaign-id="{{campaign.id}}" created-by-me="{{campaign.created_by_me}}" title="{{ campaign.notes }}" data-href="{% url 'participants' %}?id={{ campaign.id }}">
+                    <td class="campaign align-middle" campaign-id="{{campaign.id}}" created-by-me="{% if campaign.owner == user %}true{% else %}false{% endif %}" title="{{ campaign.notes }}" data-href="{% url 'participants' %}?campaign_id={{ campaign.id }}">
                         {% if campaign.notes|length == 0 %}
                             -
                         {% else %}
@@ -40,11 +40,11 @@
                     </td>
 
                     <!-- Number of participants -->
-                    <td class="campaign align-middle" campaign-id="{{campaign.id}}" created-by-me="{{campaign.created_by_me}}" title="Number of participants" data-href="{% url 'participants' %}?id={{ campaign.id }}">
-                        {% if campaign.participants == 0 %}
+                    <td class="campaign align-middle" campaign-id="{{campaign.id}}" created-by-me="{{campaign.created_by_me}}" title="Number of participants" data-href="{% url 'participants' %}?campaign_id={{ campaign.id }}">
+                        {% if  campaign|campaign_participants_count == 0 %}
                             <span style="color: red;">no participants</span>
                         {% else %}
-                            {{ campaign.participants|intcomma }}
+                            {{ campaign|campaign_participants_count|intcomma }}
                         {% endif %}
                     </td>
                 </tr>

@@ -43,7 +43,7 @@
 
                         // send the id token to the server for verification and login
                         $.ajax({
-                            url: "{% url 'googleLoginApi' %}",
+                            url: "{% url 'google-login-api' %}",
                             type: "POST",
                             data: {
                                 'id_token': idToken,
@@ -63,7 +63,7 @@
             // Test login button click
             $('#signInTestApi').click(function() {
                 $.ajax({
-                    url: "{% url 'demoLoginApi' %}",
+                    url: "{% url 'demo-login-api' %}",
                     type: "POST",
                     data: {
                         'csrfmiddlewaretoken': '{{ csrf_token }}',

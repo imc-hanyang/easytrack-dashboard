@@ -7,7 +7,7 @@ register = template.Library()
 
 
 @register.filter
-def timestamp_hreadable(timestamp):
+def timestamp_hreadable(timestamp: datetime):
   '''Return a human readable timestamp.'''
 
   if timestamp.year == datetime.fromtimestamp(0).year:

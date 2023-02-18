@@ -7,7 +7,7 @@ register = template.Library()
 
 
 @register.filter
-def timestamp_html_datetime_input(timestamp):
+def timestamp_html_datetime_input(timestamp: datetime):
   '''Return a human readable timestamp.'''
 
   if timestamp.year == datetime.fromtimestamp(0).year:

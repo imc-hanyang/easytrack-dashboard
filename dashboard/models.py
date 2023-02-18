@@ -4,9 +4,6 @@
 class EnhancedDataSource:
     '''This class is a wrapper for a data source that has been enhanced with'''
 
-    db_data_source: dict
-    plot_str: str
-
     def __init__(self, db_data_source, plot_str=None):
         self.db_data_source = db_data_source
         self.plot_str = plot_str

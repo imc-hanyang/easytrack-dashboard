@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load humanize fix_localhost timestamp_hreadable %}
+{% load humanize fix_localhost timestamp_hreadable is_user_participant %}
 
 {% block content %}
     
@@ -19,47 +19,47 @@
             </tr>
         </thead>
         <tbody>
-            {% for participant in participants %}
+            {% for stats in participants_stats %}
             <tr style="cursor: pointer">
                 <!-- Participant ID -->
-                <td class="participant align-middle" participant-id="{{participant.id}}" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">
-                    {{ participant.id }}
+                <td class="participant align-middle" participant-id="{{ stats.participant_id }}" data-href="{% url 'data-sources' %}?campaign_id={{ campaign.id }}&participant_id={{ stats.participant_id }}">
+                    {{ stats.participant_id }}
                 </td>
 
                 <!-- Participant name -->
-                <td class="participant align-middle" participant-id="{{participant.id}}" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}" title="{{ participant.email }}">
-                    {{ participant.name }}
+                <td class="participant align-middle" participant-id="{{ stats.participant_id }}" data-href="{% url 'data-sources' %}?campaign_id={{ campaign.id }}&participant_id={{ stats.participant_id }}" title="{{ stats.participant_email }}">
+                    {{ stats.participant_name }}
                 </td>
 
                 <!-- Participation duration -->
-                <td class="participant align-middle" participant-id="{{participant.id}}" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">
-                    {% if participant.day_no == 0 %}
+                <td class="participant align-middle" participant-id="{{ stats.participant_id }}" data-href="{% url 'data-sources' %}?campaign_id={{ campaign.id }}&participant_id={{ stats.participant_id }}">
+                    {% if stats.participation_day == 0 %}
                         <span style="color: blue;">started today</span>
                     {% else %}
-                        {{ participant.day_no }} days
+                        {{ stats.participation_day }} days
                     {% endif %}
                 </td>
 
                 <!-- Amount of data -->
-                <td class="participant align-middle" participant-id="{{participant.id}}" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">
-                    {% if participant.amount_of_data == 0 %}
+                <td class="participant align-middle" participant-id="{{ stats.participant_id }}" data-href="{% url 'data-sources' %}?campaign_id={{ campaign.id }}&participant_id={{ stats.participant_id }}">
+                    {% if stats.amount_of_data == 0 %}
                         <span style="color: red;">no records</span>
                     {% else %}
-                        {{ participant.amount_of_data|intcomma }}
+                        {{ stats.amount_of_data|intcomma }}
                     {% endif %}
                 </td>
 
                 <!-- Last heartbeat time -->
-                <td class="participant align-middle" participant-id="{{participant.id}}" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">
-                    {{participant.last_heartbeat_time}}
+                <td class="participant align-middle" participant-id="{{ stats.participant_id }}" data-href="{% url 'data-sources' %}?campaign_id={{ campaign.id }}&participant_id={{ stats.participant_id }}">
+                    {{ stats.last_heartbeat_time }}
                 </td>
 
                 <!-- Last sync time -->
-                <td class="participant align-middle" participant-id="{{participant.id}}" data-href="{% url 'participant' %}?campaign_id={{campaign.id}}&participant_id={{ participant.id }}">
-                    {% if participant.last_sync_time|timestamp_hreadable == 'n/a' %}
+                <td class="participant align-middle" participant-id="{{ stats.participant_id }}" data-href="{% url 'data-sources' %}?campaign_id={{ campaign.id }}&participant_id={{ stats.participant_id }}">
+                    {% if stats.last_sync_time|timestamp_hreadable == 'n/a' %}
                         <span style="color: red;">never</span>
                     {% else %}
-                        {{participant.last_sync_time|timestamp_hreadable}}
+                        {{ stats.last_sync_time|timestamp_hreadable }}
                     {% endif %}
                 </td>
             </tr>
@@ -68,9 +68,9 @@
     </table>
 
     <!-- 'Join as a participant' button -->
-    {% if debug and not joined %}
+    {% if debug and not is_user_participant.user.campaign %}
         <div class="text-center">
-            <a type="button" class="btn btn-primary btn-lg" href="{% url 'dev-join-campaign' %}?campaign_id={{ campaign.id }}">Join as a participant</a>
+            <a id="btnJoinAsParticipant" type="button" class="btn btn-primary btn-lg">Join as a participant</a>
         </div>
     {% endif %}
 
@@ -124,6 +124,22 @@
         // context menu button clicks
         $("#context-menu a").on("click", function() {
             $(this).parent().removeClass("show").hide();
+        });
+
+        // join as a participant button click
+        $('#btnJoinAsParticipant').click(function() {
+            $.ajax({
+                url: "{% url 'join-as-participant-api' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                    email: '{{ user.email }}',
+                    campaign_id: '{{ campaign.id }}',
+                },
+                success: function() {
+                    window.location.reload();
+                }
+            });
         });
     </script>
 {% endblock %}
