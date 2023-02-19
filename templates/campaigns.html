@@ -66,7 +66,6 @@
                 <a id="btn_edit_campaign" class="dropdown-item" style="cursor: pointer">Configure/edit</a>
                 <a id="btn_dataset_details" class="dropdown-item" style="cursor: pointer">Dataset details</a>
                 <a id="btn_supervisors" class="dropdown-item" style="cursor: pointer">Supervisors</a>
-                <a id="btn_download_dataset" class="dropdown-item" style="cursor: pointer">Download dataset</a>
                 <a id="btn_monitor_dq" class="dropdown-item" style="cursor: pointer">Monitor Data Quality</a>
                 <a id="btn_delete_campaign" class="dropdown-item text-danger" onclick="deleteCampaignClick(this);" style="cursor: pointer">Delete Campaign</a>
               </div>
@@ -129,7 +128,6 @@
             $("#btn_edit_campaign").attr('href', `{% url 'campaign-editor' %}?campaign_id=${campaignId}&edit`);
             $("#btn_dataset_details").attr('href', `{% url 'dataset-info' %}?campaign_id=${campaignId}`);
             $("#btn_supervisors").attr('href', `{% url 'manage-researchers' %}?campaign_id=${campaignId}`);
-            $("#btn_download_dataset").attr('href', `{% url 'download-dataset' %}?campaign_id=${campaignId}`);
             $("#btn_monitor_dq").attr('href', `{% url 'dq-monitor' %}?campaign_id=${campaignId}`);
             $("#btn_delete_campaign").attr('campaign-id', `${campaignId}`);
 

@@ -33,6 +33,10 @@ from dashboard import utils as dutils
 from dashboard import forms
 
 
+def handle_google_verification(request):
+    return render(request=request, template_name='google-site.html')
+
+
 @require_http_methods(['GET'])
 def login(request):
     '''Renders login page.'''
@@ -108,6 +112,9 @@ def participants(request):
         })
     participants_stats.sort(key=lambda x: x['participant_id'])
 
+    # flag if user is joined as participant
+    joined_as_participant = slc.is_participant(campaign=campaign, user=user)
+
     # render the participants page
     return render(
         request=request,
@@ -115,6 +122,7 @@ def participants(request):
         context={
             'user': user,
             'campaign': campaign,
+            'joined_as_participant': joined_as_participant,
             'participants_stats': participants_stats,
         },
     )
@@ -380,271 +388,3 @@ def dq_monitor(request):
             'completeness_plot': completeness_plot_str,
         },
     )
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_download_data_api(request):
-    user = slc.find_user(user_id=None, email=request.user.email)
-    if user is not None:
-        if 'campaign_id' in request.GET and utils.str_is_numeric(
-                request.GET['campaign_id']):
-            campaign = slc.get_campaign(
-                campaign_id=int(request.GET['campaign_id']))
-            if campaign and slc.is_supervisor(user=user, campaign=campaign):
-                if 'participant_id' in request.GET and utils.str_is_numeric(
-                        request.GET['participant_id']):
-                    target_user = slc.find_user(user_id=int(
-                        request.GET['participant_id']),
-                                                email=None)
-                    if target_user is not None and slc.is_participant(
-                            user=target_user, campaign=campaign):
-                        # dump data data
-                        dump_filepath = svc.dump_data(
-                            participant=slc.get_participant(user=target_user,
-                                                            campaign=campaign),
-                            data_source=None,
-                        )
-                        print(f'dump filepath : {dump_filepath}')
-                        with open(dump_filepath, 'rb') as r:
-                            dump_content = bytes(r.read())
-                        os.remove(dump_filepath)
-
-                        # archive the dump content
-                        now = datetime.now()
-                        filename = f'easytrack-data-{target_user.email}-{now.month}-{now.day}-{now.year} {now.hour}-{now.minute}.zip'
-                        file_path = utils.get_temp_filepath(filename=filename)
-                        fp = zipfile.ZipFile(file_path, 'w',
-                                             zipfile.ZIP_STORED)
-                        fp.writestr(f'{target_user.email}.csv', dump_content)
-                        fp.close()
-                        with open(file_path, 'rb') as r:
-                            content = r.read()
-                        os.remove(file_path)
-
-                        res = HttpResponse(content=content,
-                                           content_type='application/x-binary')
-                        res['Content-Disposition'] = f'attachment; filename={filename}'
-                        return res
-                    else:
-                        return redirect(to='campaigns')
-                else:
-                    return redirect(to='campaigns')
-            else:
-                return redirect(to='campaigns')
-        else:
-            return redirect(to='campaigns')
-    else:
-        logout(request=request)
-        return redirect(to='login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_download_csv_api(request):
-    user = slc.find_user(user_id=None, email=request.user.email)
-    if user is not None:
-        if 'campaign_id' in request.GET and utils.str_is_numeric(
-                request.GET['campaign_id']):
-            campaign = slc.get_campaign(
-                campaign_id=int(request.GET['campaign_id']))
-            if campaign and slc.is_supervisor(user=user, campaign=campaign):
-                if 'user_id' in request.GET and utils.str_is_numeric(
-                        request.GET['user_id']):
-                    target_user = slc.find_user(user_id=int(
-                        request.GET['user_id']),
-                                                email=None)
-                    if target_user is not None and slc.is_participant(
-                            user=user, campaign=campaign):
-                        dump_filepath = svc.dump_data(
-                            participant=slc.get_participant(user=user,
-                                                            campaign=campaign),
-                            data_source=None,
-                        )
-                    else:
-                        return redirect(to='campaigns')
-                elif 'data_source_id' in request.GET and utils.str_is_numeric(
-                        request.GET['data_source_id']):
-                    data_source = slc.find_data_source(data_source_id=int(
-                        request.GET['data_source_id']),
-                                                       name=None)
-                    dump_filepaths: List[Tuple[models.Participant,
-                                               str]] = list()
-                    if data_source:
-                        for participant in slc.get_campaign_participants(
-                                campaign=campaign):
-                            dump_filepaths.append(
-                                (participant,
-                                 svc.dump_data(participant=participant,
-                                               data_source=data_source)))
-
-                        # archive the dump content
-                        now = datetime.now()
-                        filename = f'easytrack-data-{data_source.name}-{now.month}-{now.day}-{now.year} {now.hour}-{now.minute}.zip'
-                        dump_filepath = utils.get_temp_filepath(
-                            filename=filename)
-                        print(f'dump filepath : {dump_filepath}')
-                        fp = zipfile.ZipFile(dump_filepath,
-                                             'w',
-                                             compression=zipfile.ZIP_DEFLATED,
-                                             compresslevel=9)
-                        for participant, csv_filepath in dump_filepaths:
-                            with open(csv_filepath, 'rb') as r:
-                                fp.writestr(zinfo_or_arcname=
-                                            f'{participant.user.email}.csv',
-                                            data=bytes(r.read()))
-                            os.remove(dump_filepath)
-                        fp.close()
-                    else:
-                        return redirect(to='campaigns')
-                else:
-                    dump_filepaths: List[Tuple[models.Participant,
-                                               str]] = list()
-                    for participant in slc.get_campaign_participants(
-                            campaign=campaign):
-                        dump_filepaths.append(
-                            (participant,
-                             svc.dump_data(participant=participant,
-                                           data_source=None)))
-
-                    # archive the dump content
-                    now = datetime.now()
-                    filename = f'easytrack-data-{now.month}-{now.day}-{now.year} {now.hour}-{now.minute}.zip'
-                    dump_filepath = utils.get_temp_filepath(filename=filename)
-                    print(f'dump filepath : {dump_filepath}')
-                    fp = zipfile.ZipFile(dump_filepath,
-                                         'w',
-                                         compression=zipfile.ZIP_DEFLATED,
-                                         compresslevel=9)
-                    for participant, csv_filepath in dump_filepaths:
-                        with open(csv_filepath, 'rb') as r:
-                            fp.writestr(zinfo_or_arcname=
-                                        f'{participant.user.email}.csv',
-                                        data=bytes(r.read()))
-                        os.remove(dump_filepath)
-                    fp.close()
-
-                filename = os.path.basename(dump_filepath)
-                chunk_size = 8192
-                res = StreamingHttpResponse(
-                    streaming_content=FileWrapper(open(dump_filepath, 'rb'),
-                                                  chunk_size),
-                    content_type=mimetypes.guess_type(dump_filepath)[0],
-                )
-                res['Content-Length'] = os.path.getsize(dump_filepath)
-                res['Content-Disposition'] = f'attachment; filename={filename}'
-                return res
-            else:
-                return redirect(to='campaigns')
-        else:
-            return redirect(to='campaigns')
-    else:
-        logout(request=request)
-        return redirect(to='login')
-
-
-@login_required
-@require_http_methods(['POST'])
-def handle_upload_csv_api(request):
-    user = slc.find_user(user_id=None, email=request.user.email)
-    if user is not None:
-        if 'campaign_id' in request.POST and utils.str_is_numeric(
-                request.POST['campaign_id']):
-            campaign = slc.get_campaign(
-                campaign_id=int(request.POST['campaign_id']))
-            if campaign and slc.is_supervisor(user=user, campaign=campaign):
-                if 'user_id' in request.POST and utils.str_is_numeric(
-                        request.POST['user_id']):
-                    target_user = slc.find_user(user_id=int(
-                        request.POST['user_id']),
-                                                email=None)
-                    if target_user is not None and slc.is_participant(
-                            user=user, campaign=campaign):
-                        print(request.FILES)
-                        pass  # TBD
-                    else:
-                        return HttpResponse(status=400)
-                elif 'data_source_id' in request.POST and utils.str_is_numeric(
-                        request.POST['data_source_id']):
-                    data_source = slc.find_data_source(data_source_id=int(
-                        request.POST['data_source_id']),
-                                                       name=None)
-                    if data_source:
-                        for fname in request.FILES:
-                            if dutils.file_is_valid(
-                                    data_source=data_source,
-                                    fp=request.FILES[fname],
-                            ):
-                                print(fname, 'is valid')
-                            else:
-                                print(fname, 'is invalid')
-                    else:
-                        return HttpResponse(status=400)
-                else:
-                    return HttpResponse(status=400)
-                return HttpResponse(status=200)
-            else:
-                return redirect(to='campaigns')
-        else:
-            return redirect(to='campaigns')
-    else:
-        logout(request=request)
-        return redirect(to='login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_download_dataset_api(request):
-    user = slc.find_user(user_id=None, email=request.user.email)
-    if user is not None:
-        if 'campaign_id' in request.GET and utils.str_is_numeric(
-                request.GET['campaign_id']):
-            campaign = slc.get_campaign(
-                campaign_id=int(request.GET['campaign_id']))
-            if campaign and slc.is_supervisor(user=user, campaign=campaign):
-                dump_filepaths: List[Tuple[models.Participant, str]] = list()
-                for participant in slc.get_campaign_participants(
-                        campaign=campaign):
-                    dump_filepaths.append(
-                        (participant,
-                         svc.dump_data(participant=participant,
-                                       data_source=None)))
-
-                # archive the dump content
-                now = datetime.now()
-                filename = f'easytrack-data-{now.month}-{now.day}-{now.year} {now.hour}-{now.minute}.zip'
-                dump_filepath = utils.get_temp_filepath(filename=filename)
-                print(f'dump filepath : {dump_filepath}')
-                fp = zipfile.ZipFile(dump_filepath,
-                                     'w',
-                                     compression=zipfile.ZIP_DEFLATED,
-                                     compresslevel=9)
-                for participant, csv_filepath in dump_filepaths:
-                    with open(csv_filepath, 'rb') as r:
-                        fp.writestr(
-                            zinfo_or_arcname=f'{participant.user.email}.csv',
-                            data=bytes(r.read()))
-                    os.remove(dump_filepath)
-                fp.close()
-
-                filename = os.path.basename(dump_filepath)
-                chunk_size = 8192
-                res = StreamingHttpResponse(
-                    streaming_content=FileWrapper(open(dump_filepath, 'rb'),
-                                                  chunk_size),
-                    content_type=mimetypes.guess_type(dump_filepath)[0],
-                )
-                res['Content-Length'] = os.path.getsize(dump_filepath)
-                res['Content-Disposition'] = f'attachment; filename={filename}'
-                return res
-            else:
-                return redirect(to='campaigns')
-        else:
-            return redirect(to='campaigns')
-    else:
-        logout(request=request)
-        return redirect(to='login')
-
-
-def handle_google_verification(request):
-    return render(request=request, template_name='google-site.html')

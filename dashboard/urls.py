@@ -4,6 +4,10 @@ from dashboard import views
 from django.urls import include
 
 urlpatterns = [
+    # google oAuth and site veriification
+    path('google-auth/', include('social_django.urls', namespace='social')),
+    path('google-site-verification.html', views.handle_google_verification),
+
     # REST APIs
     path(
         'api/',
@@ -72,32 +76,4 @@ urlpatterns = [
         views.dq_monitor,
         name='dq-monitor',
     ),
-
-    # TODO: continue from here
-    path(
-        'download-dataset/',
-        views.handle_download_dataset_api,
-        name='download-dataset',
-    ),
-    path(
-        'download-data/',
-        views.handle_download_data_api,
-        name='download-data',
-    ),
-    path(
-        'download-csv/',
-        views.handle_download_csv_api,
-        name='download-csv',
-    ),
-    path(
-        'upload-csv/',
-        views.handle_upload_csv_api,
-        name='upload-csv',
-    ),
-
-
-    # others
-    path('admin/', admin.site.urls),
-    path('google-site-verification.html', views.handle_google_verification),
-    path('google-auth/', include('social_django.urls', namespace='social')),
 ]

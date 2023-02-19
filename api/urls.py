@@ -52,4 +52,11 @@ urlpatterns = [
         views.DeleteCampaign.as_view(),
         name='delete-campaign-api',
     ),
+
+    # upload csv file
+    path(
+        'upload-csv/',
+        views.UploadCSV.as_view(),
+        name='upload-csv-api',
+    ),
 ]

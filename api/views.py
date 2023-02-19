@@ -4,7 +4,10 @@
 from os import getenv
 from time import time_ns
 from typing import List
-import json
+from datetime import datetime
+
+# 3rd party
+import pandas as pd
 
 # django
 from django.contrib.auth import authenticate
@@ -663,3 +666,105 @@ class DeleteCampaign(generics.DestroyAPIView):
         campaign.delete().execute()
 
         return response.Response(status=status.HTTP_200_OK)
+
+
+class UploadCSV(generics.CreateAPIView):
+
+    class InputSerializer(serializers.Serializer):
+        '''Input serializer for UploadCSV view.'''
+
+        email = serializers.EmailField(
+            required=True,
+            allow_blank=False,
+        )
+        campaign_id = serializers.IntegerField(
+            required=True,
+            allow_null=False,
+        )
+        data_source_id = serializers.IntegerField(
+            required=True,
+            allow_null=False,
+        )
+        files = serializers.ListField(child=serializers.FileField(
+            allow_empty_file=False,
+            use_url=False,
+        ))
+
+        def validate(self, attrs):
+            '''Validate input data.'''
+
+            # check if user exists
+            user = slc.find_user(user_id=None, email=attrs['email'])
+            if not user:
+                raise ValidationError('User does not exist')
+
+            # check if campaign exists
+            campaign = slc.get_campaign(campaign_id=attrs['campaign_id'])
+            if not campaign:
+                raise ValidationError('Campaign does not exist')
+            if not slc.is_supervisor(campaign=campaign, user=user):
+                raise ValidationError(
+                    'User is not a supervisor'
+                )  # should be available to researchers only
+
+            # check if data source exists
+            data_source = slc.find_data_source(
+                data_source_id=attrs['data_source_id'],
+                name=None,
+            )
+            if not data_source:
+                raise ValidationError('Data source does not exist')
+
+            # get columns for comparing with CSV file
+            columns = slc.get_data_source_columns(data_source=data_source)
+            columns_py_types = {
+                'timestamp': datetime,
+                'text': str,
+                'integer': int,
+                'float': float,
+            }
+            dtypes = dict()
+            for column in columns:
+                dtypes[column.name] = columns_py_types[column.column_type]
+
+            # check files
+            for file in attrs['files']:
+                # check if file is a CSV file
+                if file.content_type != 'text/csv':
+                    raise ValidationError('File is not a CSV file')
+
+                # check columns using pandas
+                try:
+                    df = pd.read_csv(file, dtype=dtypes)
+                except Exception as e:
+                    raise ValidationError(e) from e
+
+                # participant id column is required
+                if 'participant_id' not in df.columns:
+                    raise ValidationError(
+                        f'Participant id column is missing in {file.name}')
+
+            return attrs
+
+    serializer_class = InputSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        '''POST method for JoinAsParticipant view.'''
+
+        # validate input data
+        serializer = UploadCSV.InputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return response.Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # create participant with email and campaign_id
+        email = serializer.validated_data['email']
+        campaign_id = serializer.validated_data['campaign_id']
+        svc.add_campaign_participant(
+            campaign=slc.get_campaign(campaign_id=campaign_id),
+            add_user=slc.find_user(user_id=None, email=email),
+        )
+        return response.Response(status=status.HTTP_201_CREATED)

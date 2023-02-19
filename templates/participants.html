@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load humanize fix_localhost timestamp_hreadable is_user_participant %}
+{% load humanize fix_localhost timestamp_hreadable %}
 
 {% block content %}
     
@@ -69,7 +69,7 @@
     </table>
 
     <!-- 'Join as a participant' button -->
-    {% if debug and not is_user_participant.user.campaign %}
+    {% if debug and not joined_as_participant %}
         <div class="text-center">
             <a id="btnJoinAsParticipant" type="button" class="btn btn-primary btn-lg">Join as a participant</a>
         </div>
@@ -80,7 +80,6 @@
         <div>
             <div class="dropdown-menu dropdown-menu-sm" id="context-menu">
                 <a id="btn_data_sources" class="dropdown-item" style="cursor: pointer">Data sources</a>
-                <a id="btn_download_dataset" class="dropdown-item" style="cursor: pointer">Download dataset</a>
                 <a id="btn_monitor_dq" class="dropdown-item" style="cursor: pointer">Monitor Data Quality</a>
               </div>
         </div>
@@ -112,7 +111,6 @@
             
             // set campaign id for context menu buttons
             $('#btn_data_sources').click(() => window.location.href = e.target.attributes['data-href'].value);
-            $("#btn_download_dataset").attr('href', `{% url 'download-data' %}?campaign_id={{campaign.id}}&participant_id=${participantId}`);
             $("#btn_monitor_dq").attr('href', `{% url 'dq-monitor' %}?campaign_id={{campaign.id}}&participant_id=${participantId}`);
             
             // block default Webbrowser right click menu

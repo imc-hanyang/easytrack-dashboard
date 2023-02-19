@@ -52,7 +52,6 @@
         <div>
             <div class="dropdown-menu dropdown-menu-sm" id="context-menu">
                 <a id="btn_raw_data" class="dropdown-item" style="cursor: pointer">View raw data</a>
-                <a id="btn_download_dataset" class="dropdown-item" style="cursor: pointer">Download dataset</a>
                 <a id="btn_monitor_dq" class="dropdown-item" style="cursor: pointer">Monitor Data Quality</a>
               </div>
         </div>
@@ -83,7 +82,6 @@
             
             // set campaign id for context menu buttons
             $('#btn_raw_data').click(() => window.location.href = e.target.attributes['data-href'].value);
-            $("#btn_download_dataset").attr('href', `{% url 'download-data' %}?campaign_id={{campaign.id}}&participant_id={{participant.id}}&data_source_id=${dataSourceId}`);
             $("#btn_monitor_dq").attr('href', `{% url 'dq-monitor' %}?campaign_id={{campaign.id}}&participant_id={{participant.id}}&data_source_id=${dataSourceId}`);
             
             // block default Webbrowser right click menu
