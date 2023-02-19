@@ -48,6 +48,37 @@ class CampaignsForm(forms.Form):
         return user, campaigns
 
 
+class CampaignEditorForm(forms.Form):
+    '''Form for campaign editor request/view validation'''
+
+    email = forms.EmailField(required=True)
+    campaign_id = forms.IntegerField(required=False)
+
+    def clean(self):
+        '''Validate form data'''
+        value = super().clean()
+        if self.errors:
+            return value
+
+        # Validate campaign if campaign_id is provided
+        if value['campaign_id']:
+            campaign = slc.get_campaign(campaign_id=value['campaign_id'])
+            if not campaign:
+                raise forms.ValidationError('Invalid Campaign ID')
+
+        return value
+
+    def to_python(self):
+        '''Convert form data to python data'''
+        value = self.clean()
+
+        # get campaign
+        campaign = slc.get_campaign(campaign_id=value['campaign_id'])
+
+        # return campaigns
+        return campaign
+
+
 class CampaignParticipantsForm(forms.Form):
     '''Form for campaign participants request/view validation'''
 
@@ -154,10 +185,6 @@ class ParticipantDataSourcesForm(forms.Form):
                 data_source.id,
                 'name':
                 data_source.name,
-                'icon_name':
-                data_source.icon_name,
-                'configurations':
-                data_source.configurations,
                 'amount_of_data':
                 data_source_stats.amount_of_samples,
                 'last_sync_time':

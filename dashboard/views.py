@@ -1,6 +1,6 @@
 '''Views for the dashboard app.'''
 
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Dict, Optional
 from datetime import timedelta as td
 import plotly.graph_objects as go
 import collections
@@ -8,15 +8,12 @@ import mimetypes
 import datetime
 import zipfile
 import plotly
-import json
 import os
 import re
-import html
 
 # libs
 from wsgiref.util import FileWrapper
 
-import requests
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
@@ -25,7 +22,8 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse
 
 # easytrack
-from easytrack import selectors as slc, models
+from easytrack import selectors as slc
+from easytrack import models as mdl
 from easytrack import services as svc
 from easytrack import wrappers
 from easytrack import utils
@@ -179,6 +177,51 @@ def data_records(request):
 
 @login_required
 @require_http_methods(['GET'])
+def campaign_editor(request):
+    '''Renders campaign editor page.'''
+
+    # validate the form
+    form_data = request.GET.copy()
+    form_data['email'] = request.user.email
+    form = forms.CampaignEditorForm(form_data)
+    campaign: Optional[mdl.Campaign] = None
+    if form.is_valid():
+        campaign = form.to_python()
+
+    # mark selected data sources
+    selected_data_sources: Dict[str, bool] = dict()
+    if campaign is not None:
+        for data_source in slc.get_campaign_data_sources(campaign=campaign):
+            selected_data_sources[data_source.name] = True
+
+    # get data sources
+    data_sources = []
+    for data_source in slc.get_all_data_sources():
+        columns = slc.get_data_source_columns(data_source=data_source)
+        data_sources.append({
+            'name':
+            data_source.name,
+            'selected':
+            selected_data_sources.get(data_source.name, False),
+            'columns':
+            ', '.join([x.name for x in columns]),
+        })
+
+    # prepare context for rendering
+    context = {'data_sources': data_sources}
+    if campaign is not None:
+        context['campaign'] = campaign
+
+    # render the campaign editor page
+    return render(
+        request=request,
+        template_name='campaign_editor.html',
+        context=context,
+    )
+
+
+@login_required
+@require_http_methods(['GET'])
 def handle_researchers_list(request):
     user = slc.find_user(user_id=None, email=request.user.email)
     if user is not None:
@@ -227,149 +270,6 @@ def handle_researchers_list(request):
                         'session_key': user.session_key,
                     },
                 )
-            else:
-                return redirect(to='campaigns')
-        else:
-            return redirect(to='campaigns')
-    else:
-        logout(request=request)
-        return redirect(to='login')
-
-
-@login_required
-@require_http_methods(['GET', 'POST'])
-def handle_campaign_editor(request):
-    user = slc.find_user(user_id=None, email=request.user.email)
-    if user is not None:
-        if request.method == 'GET':
-            # request to open the campaign editor
-            all_data_sources = slc.get_all_data_sources()
-            if 'edit' in request.GET and 'campaign_id' in request.GET and str(
-                    request.GET['campaign_id']).isdigit():
-                # edit an existing campaign
-                campaign = slc.get_campaign(
-                    campaign_id=int(request.GET['campaign_id']))
-                if campaign and slc.is_supervisor(user=user,
-                                                  campaign=campaign):
-                    data_source_infos: List[Dict[str, str]] = list()
-                    selected_data_sources = set(
-                        slc.get_campaign_data_sources(campaign=campaign))
-                    for data_source in slc.get_all_data_sources():
-                        data_source_infos.append({
-                            'id':
-                            data_source.id,
-                            'name':
-                            data_source.name,
-                            'icon_name':
-                            data_source.icon_name,
-                            'configurations':
-                            data_source.configurations,
-                            'selected':
-                            data_source in selected_data_sources
-                        })
-                    data_source_infos.sort(key=lambda _key: _key['name'])
-                    return render(
-                        request=request,
-                        template_name='campaign_editor.html',
-                        context={
-                            'campaign': campaign,
-                            'data_sources': data_source_infos,
-                        },
-                    )
-                else:
-                    return redirect(to='campaigns')
-            else:
-                # edit for a new campaign
-                new_data_sources = []
-                for data_source in all_data_sources:
-                    new_data_sources += [{
-                        'name': data_source.name,
-                        'configurations': data_source.configurations,
-                        'icon_name': data_source.icon_name,
-                    }]
-                new_data_sources.sort(key=lambda _key: _key['name'])
-                return render(
-                    request=request,
-                    template_name='campaign_editor.html',
-                    context={'data_sources': new_data_sources},
-                )
-        elif request.method == 'POST':
-            campaign: Optional[models.Campaign] = None
-            if 'campaign_id' in request.POST and utils.str_is_numeric(
-                    request.POST['campaign_id']) and int(
-                        request.POST['campaign_id']) > -1:
-                campaign = slc.get_campaign(
-                    campaign_id=int(request.POST['campaign_id']))
-                if not campaign or not slc.is_supervisor(user=user,
-                                                         campaign=campaign):
-                    return redirect(to='campaigns')
-
-            if 'name' in request.POST and all(
-                    map(
-                        lambda s: s in request.POST and utils.is_web_ts(
-                            request.POST[s]), ['startTime', 'endTime'])):
-                key = 'DATA_SOURCE_'
-                new_data_source_names: List[str] = [
-                    s[len(key):]
-                    for s in filter(lambda s: re.fullmatch(rf'^{key}\w+$', s),
-                                    request.POST)
-                ]
-                icon_names = [
-                    s[6:-1] for s in re.findall(
-                        pattern=r'href="\w+\.png"',
-                        string=requests.get(
-                            f'http://{os.getenv(key="STATIC_HOST")}:{os.getenv(key="STATIC_PORT")}/images/data_source/'
-                        ).text,
-                    )
-                ]
-                new_data_sources: List[models.DataSource] = list()
-                for name in new_data_source_names:
-                    new_icon_name = 'miscellaneous.png'
-                    for sub in re.findall('[a-zA-Z]+', name):
-                        for icon_name in icon_names:
-                            if sub.lower() in icon_name:
-                                new_icon_name = icon_name
-                                break
-                    configurations_str = html.unescape(
-                        request.POST.get(f'CONFIGURATIONS_{name}', ''))
-                    configurations = json.loads(
-                        configurations_str.replace(
-                            ' ', '')) if configurations_str else {}
-                    new_data_sources.append(
-                        svc.create_data_source(
-                            name=name,
-                            icon_name=new_icon_name,
-                            configurations=configurations,
-                        ))
-                if len(new_data_sources) == 0:
-                    return redirect(to='campaigns')
-                campaign_name = str(request.POST['name'])
-                campaign_start_ts = datetime.datetime.fromtimestamp(
-                    utils.parse_timestamp_str(
-                        request.POST['startTime']).timestamp())
-                campaign_end_ts = datetime.datetime.fromtimestamp(
-                    utils.parse_timestamp_str(
-                        request.POST['endTime']).timestamp())
-
-                if campaign and slc.is_supervisor(user=user,
-                                                  campaign=campaign):
-                    svc.update_campaign(
-                        supervisor=slc.get_supervisor(user=user,
-                                                      campaign=campaign),
-                        name=campaign_name,
-                        start_ts=campaign_start_ts,
-                        end_ts=campaign_end_ts,
-                        data_sources=new_data_sources,
-                    )
-                elif not campaign:
-                    svc.create_campaign(
-                        owner=user,
-                        name=campaign_name,
-                        start_ts=campaign_start_ts,
-                        end_ts=campaign_end_ts,
-                        data_sources=new_data_sources,
-                    )
-                return redirect(to='campaigns')
             else:
                 return redirect(to='campaigns')
         else:

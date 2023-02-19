@@ -353,8 +353,10 @@ class CreateCampaign(generics.CreateAPIView):
                     f'User {validated["email"]} does not exist')
 
             # remove timezone info from datetimes
-            validated['start_datetime'] = validated['start_datetime'].replace(tzinfo=None)
-            validated['end_datetime'] = validated['end_datetime'].replace(tzinfo=None)
+            validated['start_datetime'] = validated['start_datetime'].replace(
+                tzinfo=None)
+            validated['end_datetime'] = validated['end_datetime'].replace(
+                tzinfo=None)
 
             return validated
 
@@ -430,47 +432,178 @@ class EditCampaign(generics.UpdateAPIView):
     class InputSerializer(serializers.Serializer):
         '''Input serializer for JoinAsParticipant view.'''
 
-        email = serializers.EmailField(required=True)
+        class DataSourceSerializer(serializers.Serializer):
+            '''Data source serializer for CreateCampaign view.'''
+
+            class ColumnSerializer(serializers.Serializer):
+                '''Column serializer for CreateCampaign view.'''
+
+                name = serializers.CharField(required=True, allow_blank=False)
+                column_type = serializers.CharField(required=True,
+                                                    allow_blank=False)
+                is_categorical = serializers.BooleanField(required=True,
+                                                          allow_null=False)
+                accept_values = serializers.CharField(required=False,
+                                                      allow_null=True)
+
+                def validate(self, attrs):
+                    '''Validate input data.'''
+                    validated = super().validate(attrs)
+
+                    # check if column type is valid
+                    valid_types = ['timestamp', 'text', 'integer', 'float']
+                    if validated['column_type'].lower() not in valid_types:
+                        raise ValidationError(
+                            f'Column type must be one of {valid_types}')
+
+                    # text must be categorical
+                    is_text_type = validated['column_type'].lower() == 'text'
+                    if is_text_type and not validated['is_categorical']:
+                        raise ValidationError(
+                            'Text columns must be categorical')
+                    validated['column_type'] = validated['column_type'].lower()
+
+                    # acceptable values must be provided only for categorical columns
+                    is_categorical = validated['is_categorical']
+                    has_accept_values = validated.get('accept_values', None)
+                    if has_accept_values and not is_categorical:
+                        raise ValidationError(
+                            'Acceptable values can only be provided for categorical columns'
+                        )
+
+                    return validated
+
+            name = serializers.CharField(required=True, allow_blank=False)
+            columns = serializers.ListField(
+                child=ColumnSerializer(),
+                required=False,
+                allow_empty=True,
+            )
+
+            def validate(self, attrs):
+                '''Validate input data.'''
+                validated = super().validate(attrs)
+
+                # get data source
+                data_source = slc.find_data_source(
+                    data_source_id=None,
+                    name=validated['name'],
+                )
+
+                # if no columns are provided, then the data source must already exist
+                no_columns = validated.get('columns', []) == []
+                no_data_source = data_source is None
+                if no_columns and no_data_source:
+                    raise ValidationError(
+                        'Data source with provided name does not exist and no columns are provided'
+                    )
+
+                return validated
+
+        email = serializers.EmailField(
+            required=True,
+            allow_blank=False,
+            allow_null=False,
+        )
         campaign_id = serializers.IntegerField(required=True)
+        name = serializers.CharField(required=True, allow_blank=False)
+        description = serializers.CharField(required=True, allow_blank=True)
+        start_datetime = serializers.DateTimeField(required=True)
+        end_datetime = serializers.DateTimeField(required=True)
+        data_sources = serializers.JSONField(required=True)
 
         def validate(self, attrs):
             '''Validate input data.'''
+            validated = super().validate(attrs)
+
+            # check data_sources json
+            data_source_srz = EditCampaign.InputSerializer.DataSourceSerializer(
+                data=validated['data_sources'],
+                many=True,
+            )
+            if not data_source_srz.is_valid():
+                raise ValidationError(data_source_srz.errors)
+            validated['data_sources'] = data_source_srz.validated_data
 
             # check if user exists
-            user = slc.find_user(user_id=None, email=attrs['email'])
+            user = slc.find_user(user_id=None, email=validated['email'])
             if not user:
-                raise ValidationError('User does not exist')
+                raise ValidationError(
+                    f'User {validated["email"]} does not exist')
 
-            # check if campaign exists
-            campaign = slc.get_campaign(campaign_id=attrs['campaign_id'])
+            # validate campaign
+            campaign = slc.get_campaign(campaign_id=validated['campaign_id'])
             if not campaign:
-                raise ValidationError('Campaign does not exist')
+                raise ValidationError(
+                    f'Campaign {validated["campaign_id"]} does not exist')
+
+            # check user is researcher/supervisor
             if not slc.is_supervisor(campaign=campaign, user=user):
                 raise ValidationError(
-                    'User is not a supervisor'
-                )  # should be available to researchers only
+                    f'User {validated["email"]} is not a researcher/supervisor for campaign {campaign.name}'
+                )
 
-            # check if user is already a participant
-            participant = slc.get_participant(campaign=campaign, user=user)
-            if participant:
-                raise ValidationError('User is already a participant')
+            # remove timezone info from datetimes
+            validated['start_datetime'] = validated['start_datetime'].replace(
+                tzinfo=None)
+            validated['end_datetime'] = validated['end_datetime'].replace(
+                tzinfo=None)
 
-            return attrs
-
-        class Meta:
-            fields = '__all__'
+            return validated
 
     http_method_names = ['post']
     serializer_class = InputSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        serializer = JoinAsParticipant.InputSerializer(data=request.data)
+        '''POST method for JoinAsParticipant view.'''
+
+        # validate input data
+        serializer = EditCampaign.InputSerializer(data=request.data)
         if not serializer.is_valid():
             return response.Response(
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        logout(request=request)
+        # remove previous campaign data sources
+        campaign_id = serializer.validated_data['campaign_id']
+        campaign = slc.get_campaign(campaign_id=campaign_id)
+        for data_source in slc.get_campaign_data_sources(campaign=campaign):
+            svc.remove_campaign_data_source(
+                campaign=campaign,
+                data_source=data_source,
+            )
+
+        # add new data sources
+        for data_source in serializer.validated_data['data_sources']:
+
+            # selected or created data_source stored in tmp
+            if data_source.get('columns', None) is None:
+                # existing data source
+                tmp = slc.find_data_source(
+                    data_source_id=None,
+                    name=data_source['name'],
+                )
+            else:
+                # new data source
+                columns: List[mdl.Column] = []
+                for column in data_source['columns']:
+                    columns.append(
+                        svc.create_column(
+                            name=column['name'],
+                            column_type=column['column_type'],
+                            is_categorical=column['is_categorical'],
+                            accept_values=column.get('accept_values', None),
+                        ))
+                
+                # create data source
+                tmp = svc.create_data_source(
+                    name=data_source['name'],
+                    columns=columns,
+                )
+
+            # add to data sources list
+            svc.add_campaign_data_source(campaign=campaign, data_source=tmp)
+
         return response.Response(status=status.HTTP_201_CREATED)

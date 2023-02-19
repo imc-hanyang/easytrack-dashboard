@@ -10,7 +10,6 @@
     <table class="table text-center table-hover">
         <thead>
             <tr>
-                <th></th>
                 <th>Data source</th>
                 <th>Amount of data records</th>
                 <th>Last sync time</th>
@@ -19,10 +18,6 @@
         <tbody>
             {% for data_source in data_sources %}
                 <tr style="cursor: pointer">
-                    <!-- data source icon -->
-                    <td class="data-source align-middle" data-source-id="{{data_source.id}}" data-href="{% url 'data-records' %}?campaign_id={{ campaign.id }}&participant_id={{ participant.id }}&data_source_id={{ data_source.id }}&from_timestamp=-1">
-                        <img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/data_source/{{ data_source.icon_name }}" alt="{{ data_source.name }}" style="width: 24px; height: 24px;">
-                    </td>
                     
                     <!-- data source name -->
                     <td class="data-source align-middle" data-source-id="{{data_source.id}}" data-href="{% url 'data-records' %}?campaign_id={{ campaign.id }}&participant_id={{ participant.id }}&data_source_id={{ data_source.id }}&from_timestamp=-1" title="Data source ID = {{ data_source.id }}">

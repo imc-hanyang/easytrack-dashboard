@@ -45,12 +45,14 @@ urlpatterns = [
         name='data-records',
     ),
 
-    # TODO: continue from here
+    # Campaign editor (Campaign -> Edit)
     path(
         'edit/',
-        views.handle_campaign_editor,
+        views.campaign_editor,
         name='campaign-editor',
     ),
+
+    # TODO: continue from here
     path(
         'researchers/',
         views.handle_researchers_list,

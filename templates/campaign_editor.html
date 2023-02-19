@@ -66,7 +66,7 @@
                                 <input class="form-check-input data-source-checkbox" style="cursor: pointer" data-source-name="{{data_source.name}}" type="checkbox" {% if data_source.selected %}checked{%endif%}>
                                 <!-- Data source name -->
                                 <span class="pl-1">
-                                    {{data_source.name}} ({{data_source.configurations|data_source_cols_hreadable}})
+                                    {{data_source.name}} ({{data_source.columns}})
                                 </span>
                             </label>
                         </div>
