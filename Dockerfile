@@ -42,10 +42,10 @@ COPY .gitignore manage.py gunicorn.ini ./
 # open app port and run the app
 EXPOSE 8000
 
-# django
-ENTRYPOINT ["python", "manage.py"]
-CMD ["runserver", "0:8000"]
+# # django
+# ENTRYPOINT ["python", "manage.py"]
+# CMD ["runserver", "0:8000"]
 
 # gunicorn
-# ENTRYPOINT ["gunicorn"]
-# CMD ["dashboard.wsgi", "-c", "gunicorn.ini"]
+ENTRYPOINT ["gunicorn"]
+CMD ["dashboard.wsgi", "-c", "gunicorn.ini"]

@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block content %}
+
+    <!-- Login card -->
+    <div>
+        <div class="card shadow-lg p-3 mb-5 bg-white rounded" style="width: 18rem; margin: 0 auto; margin-top: 5rem;">
+            <div class="card-body">
+                <h2 class="card-title text-center">Login</h5>
+                
+                <a href="{% url 'social:begin' 'google-oauth2' %}{% if next %}?next={{ next }}{% endif %}" id="loginButton" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                    Login with Google
+                </a>
+
+                <a id="signInTestApi" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                    Login with test account
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).init(function () {
+
+            // Login button click
+            $('#loginButton').click(function () {
+                // Load the google auth2 api
+                gapi.load('auth2', function () {
+                    
+                    // Login with google
+                    gapi.auth2.authorize({
+                        client_id: '{{GOOGLE_CLIENT_ID}}',
+                        scope: "email profile openid",
+                        response_type: 'id_token permission'
+                    }, function (response) {
+                        // check if login failed
+                        if (response.error) {
+                            alert('Failed to login, please try again!'); // todo: error message modal instead
+                            return;
+                        }
+
+                        // extract the id token from the response
+                        let idToken = response.id_token;
+
+                        // send the id token to the server for verification and login
+                        $.ajax({
+                            url: "{% url 'google-login-api' %}",
+                            type: "POST",
+                            data: {
+                                'id_token': idToken,
+                                'csrfmiddlewaretoken': '{{ csrf_token }}',
+                            },
+                            success: function (data) {
+                                window.location.reload();
+                            },
+                            error: function (data) {
+                                alert('Failed to login, please try again!'); // todo: error message modal instead
+                            }
+                        });
+                    });
+                });
+            });
+
+            // Test login button click
+            $('#signInTestApi').click(function() {
+                $.ajax({
+                    url: "{% url 'demo-login-api' %}",
+                    type: "POST",
+                    data: {
+                        'csrfmiddlewaretoken': '{{ csrf_token }}',
+                    },
+                    success: function (data) {
+                        window.location.reload();
+                    },
+                    error: function (data) {
+                        alert('Failed to login, please try again!'); // todo: error message modal instead
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}

@@ -1,964 +1,390 @@
-from typing import List, Tuple, Optional, Dict
-from datetime import timedelta as td
+'''Views for the dashboard app.'''
+
+from typing import List, Tuple, Dict, Optional
+from datetime import timedelta
+from datetime import datetime
+from datetime import date
 import plotly.graph_objects as go
 import collections
 import mimetypes
-import datetime
 import zipfile
 import plotly
-import json
 import os
-import re
-import html
 
 # libs
 from wsgiref.util import FileWrapper
 
-import requests
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import logout as dj_logout
-from django.contrib.auth import login as dj_login
-from django.contrib.auth import authenticate as dj_authenticate
-from django.contrib.auth.models import User
+from django.contrib.auth import logout
 from django.http import StreamingHttpResponse
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 
-# app
-from dashboard.models import EnhancedDataSource
-from easytrack import selectors as slc, models
+# easytrack
+from easytrack import selectors as slc
+from easytrack import models as mdl
 from easytrack import services as svc
 from easytrack import wrappers
 from easytrack import utils
 
+# app
+from dashboard import utils as dutils
+from dashboard import forms
+
 
 def handle_google_verification(request):
-  return render(
-    request = request,
-    template_name = '../templates/google43e44b3701ba10c8.html',
-  )
-
-
-@require_http_methods(['GET', 'POST'])
-def handle_login_api(request):
-  if request.user.is_authenticated:
-    user = slc.find_user(user_id = None, email = request.user.email)
-    if user is None:
-      print('new user : ', end = '')
-      session_key = utils.md5(value = f'{request.user.email}{utils.now_us()}')
-      user = svc.create_user(
-        name = request.user.get_full_name(),
-        email = request.user.email,
-        session_key = session_key,
-      )
-      if user is None:
-        dj_logout(request = request)
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  return render(
-    request = request,
-    template_name = '../templates/page_authentication.html',
-    context = {'title': 'Authentication'},
-  )
+    return render(request=request, template_name='google-site.html')
 
 
 @require_http_methods(['GET'])
-def handle_development_login_api(request):
-  dev_email = 'dev@easytrack.com'
-  user = slc.find_user(
-    user_id = None,
-    email = request.user.email if request.user.is_authenticated else dev_email,
-  )
-  if user is None:
-    print('new user : ', end = '')
-    timestamp = datetime.datetime.now().timestamp()
-    session_key = utils.md5(value = f'{dev_email}{timestamp}')
-    user = svc.create_user(
-      name = 'Developer',
-      email = dev_email,
-      session_key = session_key,
+def login(request):
+    '''Renders login page.'''
+
+    # user is not authenticated -> render login page
+    if not request.user.is_authenticated:
+        return render(
+            request=request,
+            template_name='login.html',
+            context={'title': 'Authentication'},
+        )
+
+    # user is authenticated -> assert that user is valid
+    assert slc.find_user(user_id=None, email=request.user.email) is not None
+
+    # user is authenticated -> redirect to campaigns page
+    return redirect(to='campaigns')
+
+
+@login_required
+@require_http_methods(['GET'])
+def campaigns(request):
+    '''Renders campaigns page.'''
+
+    # validate the form
+    form = forms.CampaignsForm({
+        'email':
+        request.user.email,
+        'is_authenticated':
+        request.user.is_authenticated,
+    })
+    if not form.is_valid():
+        logout(request)  # invalid user -> invalidate session (weird)
+        return redirect(to='handle_login')
+    user, campaigns = form.to_python()
+
+    # render the campaigns page
+    return render(
+        request=request,
+        template_name='campaigns.html',
+        context={
+            'user': user,
+            'campaigns': campaigns,
+        },
     )
-    if user is None:
-      dj_logout(request = request)
-    else:
-      if User.objects.filter(email = dev_email).exists():
-        dj_user = User.objects.get(email = dev_email)
-      else:
-        dj_user = User.objects.create_user(
-          username = dev_email,
-          email = dev_email,
-          password = dev_email,
-          first_name = 'Developer',
-        )
-      if dj_authenticate(username = dev_email, password = dev_email):
-        dj_login(
-          request = request,
-          user = dj_user,
-          backend = 'django.contrib.auth.backends.ModelBackend',
-        )
-        return redirect(to = 'campaigns-list')
-      else:
-        return redirect(to = 'login')
-  else:
-    if User.objects.filter(email = dev_email).exists():
-      dj_user = User.objects.get(email = dev_email)
-    else:
-      dj_user = User.objects.create_user(
-        username = dev_email,
-        email = dev_email,
-        password = dev_email,
-        first_name = 'Developer',
-      )
-      dj_user.save()
-    if dj_authenticate(username = dev_email, password = dev_email):
-      dj_login(
-        request = request,
-        user = dj_user,
-        backend = 'django.contrib.auth.backends.ModelBackend',
-      )
-      return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'login')
-
-
-@login_required
-@require_http_methods(['GET', 'POST'])
-def handle_logout_api(request):
-  dj_logout(request = request)
-  return redirect(to = 'login')
 
 
 @login_required
 @require_http_methods(['GET'])
-def handle_campaigns_list(request):
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    campaigns = list()
-    for c in slc.get_supervisor_campaigns(user = user):
-      participantsCnt = slc.get_campaign_participants_count(campaign = c)
-      campaigns.append({'id': c.id, 'name': c.name, 'participants': participantsCnt, 'created_by_me': c.owner == user})
-    print('%s opened the main page' % request.user.email)
-    campaigns.sort(key = lambda x: x['id'])
+def participants(request):
+    '''Renders participants page.'''
+
+    # validate the form
+    form_data = request.GET.copy()
+    form_data['email'] = request.user.email
+    form = forms.CampaignParticipantsForm(form_data)
+    if not form.is_valid():
+        return redirect(to='campaigns')
+    user, campaign, participants = form.to_python()
+
+    # get campaign participant statistics
+    participants_stats = []
+    for participant in participants:
+        stats = wrappers.ParticipantStats(participant=participant)
+        participants_stats.append({
+            'participant_id': participant.user.id,
+            'participant_name': participant.user.name,
+            'participant_email': participant.user.email,
+            'participation_day': stats.participation_duration,
+            'amount_of_data': stats.amount_of_data,
+            'last_heartbeat_time': participant.last_heartbeat_ts,
+            'last_sync_time': stats.last_sync_ts,
+        })
+    participants_stats.sort(key=lambda x: x['participant_id'])
+
+    # flag if user is joined as participant
+    joined_as_participant = slc.is_participant(campaign=campaign, user=user)
+
+    # render the participants page
+    return render(
+        request=request,
+        template_name='participants.html',
+        context={
+            'user': user,
+            'campaign': campaign,
+            'joined_as_participant': joined_as_participant,
+            'participants_stats': participants_stats,
+        },
+    )
+
+
+@login_required
+@require_http_methods(['GET'])
+def data_sources(request):
+    '''Renders data sources page.'''
+
+    # validate the form
+    form_data = request.GET.copy()
+    form_data['email'] = request.user.email
+    form = forms.ParticipantDataSourcesForm(form_data)
+    if not form.is_valid():
+        return redirect(to='campaigns')
+    user, campaign, participant, data_source_stats = form.to_python()
+
+    # render the data sources page
+    return render(
+        request=request,
+        template_name='data_source_stats.html',
+        context={
+            'user': user,
+            'campaign': campaign,
+            'participant': participant.user,
+            'data_sources': data_source_stats,
+        },
+    )
+
+
+@login_required
+@require_http_methods(['GET'])
+def data_records(request):
+    '''Renders (raw) data records page.'''
+
+    # validate the form
+    form_data = request.GET.copy()
+    form_data['email'] = request.user.email
+    form = forms.DataRecordsForm(form_data)
+    if not form.is_valid():
+        return redirect(to='campaigns')
+    user, campaign, participant, data_source, data_records, last_timestamp = form.to_python(
+    )
 
     return render(
-      request = request,
-      template_name = '../templates/page_campaigns.html',
-      context = {
-        'title': "%s's campaigns" % request.user.get_full_name(),
-        'my_campaigns': campaigns,
-        'id': user.id,
-        'session_key': user.session_key
-      },
-    )
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_participants_list(request):
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    if 'id' in request.GET and str(request.GET['id']).isdigit():
-      campaign = slc.get_campaign(campaign_id = int(request.GET['id']))
-      if campaign and slc.is_supervisor(user = user, campaign = campaign):
-        # check if data is submitted by user or researchers
-        data_sources = slc.get_campaign_data_sources(campaign = campaign)
-        if len(data_sources) == 0:
-          return redirect(to = 'https://drive.google.com/drive/folders/1rho3la0tfZI_YLp4Lkq8MwuLF7K9SNIS')
-        else:
-          # campaign easytrack page
-          participants = list()
-          for p in slc.get_campaign_participants(campaign = campaign):
-            stats = wrappers.ParticipantStats(participant = p)
-            participants.append({
-              'id': p.user.id,
-              'name': p.user.name,
-              'email': p.user.email,
-              'day_no': stats.participation_duration,
-              'amount_of_data': stats.amount_of_data,
-              'last_heartbeat_time': p.last_heartbeat_ts,
-              'last_sync_time': stats.last_sync_ts,
-            })
-          participants.sort(key = lambda x: x['id'])
-          return render(
-            request = request,
-            template_name = '../templates/page_campaign_participants.html',
-            context = {
-              'title': "%s's participants" % campaign.name,
-              'campaign': campaign,
-              'participants': participants,
-              'id': user.id,
-              'session_key': user.session_key,
-              'joined': slc.is_participant(user = user, campaign = campaign)
-            },
-          )
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_researchers_list(request):
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    if 'campaign_id' in request.GET and str(request.GET['campaign_id']).isdigit():
-      campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
-      supervisor = slc.get_supervisor(user = user, campaign = campaign)
-      if supervisor:
-        if 'targetEmail' in request.GET and 'action' in request.GET and request.GET['action'] in ['add', 'remove']:
-          targetUser = slc.find_user(user_id = None, email = request.GET['targetEmail'])
-          if targetUser is not None:
-            if request.GET['action'] == 'add':
-              svc.add_supervisor_to_campaign(new_user = targetUser, supervisor = supervisor)
-            elif request.GET['action'] == 'remove':
-              oldSupervisor = slc.get_supervisor(user = targetUser, campaign = campaign)
-              if oldSupervisor is not None and oldSupervisor.user != campaign.owner:
-                svc.remove_supervisor_from_campaign(oldSupervisor = oldSupervisor)
-              else:
-                return redirect(to = 'campaigns-list')
-            else:
-              return redirect(to = 'campaigns-list')
-
-        # return new list of campaign's supervisors
-        supervisors = list()
-        for s in slc.get_campaign_supervisors(campaign = campaign):
-          supervisors.append({'name': s.user.name, 'email': s.user.email})
-        supervisors.sort(key = lambda x: x['name'])
-
-        return render(request = request,
-                      template_name = '../templates/page_campaign_researchers.html',
-                      context = {
-                        'title': "%s's researchers" % campaign.name,
-                        'campaign': campaign,
-                        'researchers': supervisors,
-                        'id': user.id,
-                        'session_key': user.session_key
-                      })
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_participants_data_list(request):
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    if 'campaign_id' in request.GET and str(request.GET['campaign_id']).isdigit():
-      campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
-      if campaign and slc.is_supervisor(user = user, campaign = campaign):
-        if 'participant_id' in request.GET and utils.str_is_numeric(request.GET['participant_id']):
-          participant_user = slc.find_user(
-            user_id = int(request.GET['participant_id']),
-            email = None,
-          )
-          participant = None
-          if participant_user:
-            participant = slc.get_participant(user = participant_user, campaign = campaign)
-          if participant is not None:
-            data_sources = list()
-            stats = wrappers.ParticipantStats(participant = participant)
-            for data_source in slc.get_campaign_data_sources(campaign = campaign):
-              data_source_stats = stats[data_source]
-              last_sync_ts = utils.datetime_to_str(timestamp = data_source_stats.last_sync_time, js_format = False)
-              data_sources.append({
-                'id': data_source.id,
-                'name': data_source.name,
-                'icon_name': data_source.icon_name,
-                'configurations': data_source.configurations,
-                'amount_of_data': data_source_stats.amount_of_samples,
-                'last_sync_time': last_sync_ts[:last_sync_ts.rindex(':')]
-              })
-            data_sources.sort(key = lambda x: x['name'])
-            return render(request = request,
-                          template_name = '../templates/page_participant_data_sources_stats.html',
-                          context = {
-                            'title': f'Data submitted by {participant_user.email} (ID = {participant_user.id})',
-                            'campaign': campaign,
-                            'participant': participant_user,
-                            'data_sources': data_sources,
-                            'id': user.id,
-                            'session_key': user.session_key
-                          })
-          else:
-            return redirect(to = 'campaigns-list')
-        else:
-          return redirect(to = 'campaigns-list')
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def dev_join_campaign(request):
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    if 'campaign_id' in request.GET and str(request.GET['campaign_id']).isdigit():
-      campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
-      if campaign and slc.is_supervisor(user = user, campaign = campaign):
-        svc.add_campaign_participant(
-          add_user = user,
-          campaign = campaign,
-        )
-        return redirect(to = 'campaigns-list')
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_raw_samples_list(request):
-  strip_ts = lambda x: x[:x.rindex(':')]
-
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    if 'campaign_id' in request.GET and str(request.GET['campaign_id']).isdigit():
-      campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
-      if campaign and slc.is_supervisor(user = user, campaign = campaign):
-        if 'email' in request.GET:
-          db_participant_user = slc.find_user(user_id = None, email = request.GET['email'])
-          if db_participant_user is not None and slc.is_participant(user=db_participant_user, campaign=campaign) and \
-           'from_timestamp' in request.GET and 'data_source_id' in request.GET and utils.str_is_numeric(request.GET['from_timestamp']) and utils.str_is_numeric(request.GET['data_source_id']):
-            participant = slc.get_participant(
-              user = user,
-              campaign = campaign,
-            )
-            from_timestamp = utils.millis_to_datetime(int(request.GET['from_timestamp']))
-            data_source = slc.find_data_source(
-              data_source_id = int(request.GET['data_source_id']),
-              name = None,
-            )
-            if data_source is not None:
-              data_table = wrappers.DataTable(participant = participant, data_source = data_source)
-              records = []
-              for i, record in enumerate(data_table.select_next_k(
-                  from_ts = from_timestamp,
-                  limit = 500,
-              )):
-                value = json.dumps(record.val)
-                # 5KB (e.g., binary files)
-                if len(value) > 5*1024:
-                  value = f'[ {len(value):,} byte data record ]'
-                records += [{
-                  'row': i + 1,
-                  'timestamp': strip_ts(utils.datetime_to_str(timestamp = record.ts, js_format = False)),
-                  'value': value,
-                }]
-                from_timestamp = record.ts
-              return render(
-                request = request,
-                template_name = '../templates/page_raw_data_view.html',
-                context = {
-                  'title': data_source.name,
-                  'records': records,
-                  'from_timestamp': utils.datetime_to_millis(from_timestamp),
-                  'id': user.id,
-                  'session_key': user.session_key,
-                },
-              )
-            else:
-              return redirect(to = 'campaigns-list')
-          else:
-            return redirect(to = 'campaigns-list')
-        else:
-          return redirect(to = 'campaigns-list')
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
-
-
-@login_required
-@require_http_methods(['GET', 'POST'])
-def handle_campaign_editor(request):
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    if request.method == 'GET':
-      # request to open the campaign editor
-      all_data_sources = slc.get_all_data_sources()
-      if 'edit' in request.GET and 'campaign_id' in request.GET and str(request.GET['campaign_id']).isdigit():
-        # edit an existing campaign
-        campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
-        if campaign and slc.is_supervisor(user = user, campaign = campaign):
-          data_source_infos: List[Dict[str, str]] = list()
-          selected_data_sources = set(slc.get_campaign_data_sources(campaign = campaign))
-          for data_source in slc.get_all_data_sources():
-            data_source_infos.append({
-              'name': data_source.name,
-              'icon_name': data_source.icon_name,
-              'configurations': data_source.configurations,
-              'selected': data_source in selected_data_sources
-            })
-          data_source_infos.sort(key = lambda _key: _key['name'])
-          start_ts = utils.datetime_to_str(timestamp = campaign.start_ts, js_format = True)
-          end_ts = utils.datetime_to_str(timestamp = campaign.end_ts, js_format = True)
-          return render(
-            request = request,
-            template_name = '../templates/page_campaign_editor.html',
-            context = {
-              'edit_mode': True,
-              'title': '"%s" Campaign Editor' % campaign.name,
-              'campaign': campaign,
-              'campaign_start_time': start_ts[:start_ts.rindex(':')],
-              'campaign_end_time': end_ts[:end_ts.rindex(':')],
-              'data_sources': data_source_infos,
-            },
-          )
-        else:
-          return redirect(to = 'campaigns-list')
-      else:
-        # edit for a new campaign
-        new_data_sources = []
-        for data_source in all_data_sources:
-          new_data_sources += [{
-            'name': data_source.name,
-            'configurations': data_source.configurations,
-            'icon_name': data_source.icon_name,
-          }]
-        new_data_sources.sort(key = lambda _key: _key['name'])
-        now_datetime = datetime.datetime.now()
-        start_ts = utils.datetime_to_str(timestamp = now_datetime, js_format = True)
-        end_ts = utils.datetime_to_str(timestamp = now_datetime + td(days = 30), js_format = True)
-        return render(
-          request = request,
-          template_name = '../templates/page_campaign_editor.html',
-          context = {
-            'title': 'New campaign',
-            'data_sources': new_data_sources,
-            'now_time': start_ts[:end_ts.rindex(':')],
-            'after_month_time': end_ts[:end_ts.rindex(':')],
-          },
-        )
-    elif request.method == 'POST':
-      campaign: Optional[models.Campaign] = None
-      if 'campaign_id' in request.POST and utils.str_is_numeric(
-          request.POST['campaign_id']) and int(request.POST['campaign_id']) > -1:
-        campaign = slc.get_campaign(campaign_id = int(request.POST['campaign_id']))
-        if not campaign or not slc.is_supervisor(user = user, campaign = campaign):
-          return redirect(to = 'campaigns-list')
-
-      if 'name' in request.POST and all(
-          map(lambda s: s in request.POST and utils.is_web_ts(request.POST[s]), ['startTime', 'endTime'])):
-        key = 'DATA_SOURCE_'
-        new_data_source_names: List[str] = [
-          s[len(key):] for s in filter(lambda s: re.fullmatch(rf'^{key}\w+$', s), request.POST)
-        ]
-        icon_names = [
-          s[6:-1] for s in re.findall(
-            pattern = r'href="\w+\.png"',
-            string = requests.get(
-              f'http://{os.getenv(key="STATIC_HOST")}:{os.getenv(key="STATIC_PORT")}/images/data_source/').text,
-          )
-        ]
-        new_data_sources: List[models.DataSource] = list()
-        for name in new_data_source_names:
-          new_icon_name = 'miscellaneous.png'
-          for sub in re.findall('[a-zA-Z]+', name):
-            for icon_name in icon_names:
-              if sub.lower() in icon_name:
-                new_icon_name = icon_name
-                break
-          configurations_str = html.unescape(request.POST.get(f'CONFIGURATIONS_{name}', ''))
-          configurations = json.loads(configurations_str.replace(' ', '')) if configurations_str else {}
-          new_data_sources.append(
-            svc.create_data_source(
-              name = name,
-              icon_name = new_icon_name,
-              configurations = configurations,
-            ))
-        if len(new_data_sources) == 0:
-          return redirect(to = 'campaigns-list')
-        campaign_name = str(request.POST['name'])
-        campaign_start_ts = datetime.datetime.fromtimestamp(
-          utils.parse_timestamp_str(request.POST['startTime']).timestamp())
-        campaign_end_ts = datetime.datetime.fromtimestamp(
-          utils.parse_timestamp_str(request.POST['endTime']).timestamp())
-
-        if campaign and slc.is_supervisor(user = user, campaign = campaign):
-          svc.update_campaign(
-            supervisor = slc.get_supervisor(user = user, campaign = campaign),
-            name = campaign_name,
-            start_ts = campaign_start_ts,
-            end_ts = campaign_end_ts,
-            data_sources = new_data_sources,
-          )
-        elif not campaign:
-          svc.create_campaign(
-            owner = user,
-            name = campaign_name,
-            start_ts = campaign_start_ts,
-            end_ts = campaign_end_ts,
-            data_sources = new_data_sources,
-          )
-        return redirect(to = 'campaigns-list')
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_easytrack_monitor(request):
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    if 'campaign_id' in request.GET and utils.str_is_numeric(request.GET['campaign_id']):
-      campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
-      all_data_sources = slc.get_campaign_data_sources(campaign = campaign)
-      all_participants = slc.get_campaign_participants(campaign = campaign)
-      selected_participant = None
-      if campaign is not None:
-        from_ts = datetime.datetime.now().replace(hour = 0, minute = 0, second = 0, microsecond = 0)
-        till_ts = from_ts + datetime.timedelta(hours = 24)
-
-        if 'plot_date' in request.GET:
-          plot_date_str = str(request.GET['plot_date'])
-          if re.search(r'\d{4}-\d{1,2}-\d{1,2}', plot_date_str) is not None:
-            year, month, day = plot_date_str.split('-')
-            from_ts = datetime.datetime(year = int(year),
-                                        month = int(month),
-                                        day = int(day),
-                                        hour = 0,
-                                        minute = 0,
-                                        second = 0,
-                                        microsecond = 0)
-            till_ts = from_ts + datetime.timedelta(hours = 24)
-
-        if 'participant_id' in request.GET and utils.str_is_numeric(request.GET['participant_id']):
-          selected_user = slc.find_user(user_id = int(request.GET['participant_id']), email = None)
-          if selected_user is not None:
-            selected_participant = slc.get_participant(user = selected_user, campaign = campaign)
-
-        WINDOW_SIZE = td(hours = 1)   # 1-hour sliding window
-        if 'data_source_name' in request.GET:
-          data_source_name = request.GET['data_source_name']
-          if data_source_name == 'all':
-            hourly_stats = collections.defaultdict(int)
-            # region compute hourly stats
-            for participant in (all_participants if selected_participant is None else [selected_participant]):
-              for data_source in all_data_sources:
-                data_table = wrappers.DataTable(participant = participant, data_source = data_source)
-                ts = from_ts
-                while ts < till_ts:
-                  amount = data_table.select_count(
-                    from_ts = ts,
-                    till_ts = ts + WINDOW_SIZE,
-                  )
-                  hourly_stats[ts.hour] += amount
-                  ts += WINDOW_SIZE
-            # endregion
-
-            plot_data_source = {'name': 'all campaign data sources combined'}
-            # region plot hourly stats
-            x = []
-            y = []
-            max_amount = 10
-            hours = list(hourly_stats.keys())
-            hours.sort()
-            for hour in hours:
-              amount = hourly_stats[hour]
-              if hour < 13:
-                hour = f'{hour} {"pm" if hour == 12 else "am"}'
-              else:
-                hour = f'{hour % 12} pm'
-              x += [hour]
-              y += [amount]
-              max_amount = max(max_amount, amount)
-            fig = go.Figure([go.Bar(x = x, y = y)])
-            fig.update_yaxes(range = [0, max_amount])
-            plot_str = plotly.offline.plot(fig, auto_open = False, output_type = "div")
-            plot_data_source['plot'] = plot_str
-            # endregion
-
-            return render(
-              request = request,
-              template_name = '../templates/easytrack_monitor.html',
-              context = {
-                'title': 'EasyTracker',
-                'campaign': campaign,
-                'plot_date': f'{from_ts.year}-{from_ts.month:02}-{from_ts.day:02}',
-                'participants': all_participants,
-                'plot_participant': selected_participant,
-                'all_data_sources': all_data_sources,
-                'plot_data_source': plot_data_source
-              },
-            )
-          else:
-            data_source = slc.find_data_source(data_source_id = None, name = data_source_name)
-            if data_source is not None:
-              hourly_stats = collections.defaultdict(int)
-              # region compute hourly stats
-              for participant in (all_participants if not selected_participant or selected_participant.id == 'all' else
-                                  [selected_participant]):
-                data_table = wrappers.DataTable(participant = participant, data_source = data_source)
-                ts = from_ts
-                while ts < till_ts:
-                  amount = data_table.select_count(
-                    from_ts = ts,
-                    till_ts = ts + WINDOW_SIZE,
-                  )
-                  hourly_stats[ts.hour] += amount
-                  ts += WINDOW_SIZE
-              # endregion
-
-              plot_data_source = EnhancedDataSource(db_data_source = data_source)
-              # region plot hourly stats
-              x = []
-              y = []
-              max_amount = 10
-              hours = list(hourly_stats.keys())
-              hours.sort()
-              for hour in hours:
-                amount = hourly_stats[hour]
-                if hour < 13:
-                  hour = f'{hour} {"pm" if hour == 12 else "am"}'
-                else:
-                  hour = f'{hour % 12} pm'
-                x += [hour]
-                y += [amount]
-                max_amount = max(max_amount, amount)
-              fig = go.Figure([go.Bar(x = x, y = y)])
-              fig.update_yaxes(range = [0, max_amount])
-              plot_str = plotly.offline.plot(fig, auto_open = False, output_type = "div")
-              plot_data_source.attach_plot(plot_str = plot_str)
-              # endregion
-
-              return render(
-                request = request,
-                template_name = '../templates/easytrack_monitor.html',
-                context = {
-                  'title': 'EasyTracker',
-                  'campaign': campaign,
-                  'plot_date': f'{from_ts.year}-{from_ts.month:02}-{from_ts.day:02}',
-                  'participants': all_participants,
-                  'plot_participant': selected_participant,
-                  'all_data_sources': all_data_sources,
-                  'plot_data_source': plot_data_source
-                },
-              )
-            else:
-              return redirect(to = 'campaigns-list')
-        else:
-          return redirect(to = 'campaigns-list')
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_dataset_info(request):
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    if 'campaign_id' in request.GET and utils.str_is_numeric(request.GET['campaign_id']):
-      campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
-      if campaign is not None:
-        campaign_data_sources = slc.get_campaign_data_sources(campaign = campaign)
-        campaign_data_sources.sort(key = lambda x: x.name)
-        participants: List[models.User] = [p.user for p in slc.get_campaign_participants(campaign = campaign)]
-        participants.sort(key = lambda p: p.id)
-        return render(
-          request = request,
-          template_name = '../templates/page_campaign_info.html',
-          context = {
+        request=request,
+        template_name='data_records.html',
+        context={
+            'user': user,
             'campaign': campaign,
-            'data_sources': campaign_data_sources,
+            'participant': participant.user,
+            'data_source': data_source,
+            'data_records': data_records,
+            'last_timestamp': utils.datetime_to_millis(last_timestamp),
+        },
+    )
+
+
+@login_required
+@require_http_methods(['GET'])
+def campaign_editor(request):
+    '''Renders campaign editor page.'''
+
+    # validate the form
+    form_data = request.GET.copy()
+    form_data['email'] = request.user.email
+    form = forms.CampaignEditorForm(form_data)
+    campaign: Optional[mdl.Campaign] = None
+    if form.is_valid():
+        campaign = form.to_python()
+
+    # mark selected data sources
+    selected_data_sources: Dict[str, bool] = dict()
+    if campaign is not None:
+        for data_source in slc.get_campaign_data_sources(campaign=campaign):
+            selected_data_sources[data_source.name] = True
+
+    # get data sources
+    data_sources = []
+    for data_source in slc.get_all_data_sources():
+        columns = slc.get_data_source_columns(data_source=data_source)
+        data_sources.append({
+            'name':
+            data_source.name,
+            'selected':
+            selected_data_sources.get(data_source.name, False),
+            'columns':
+            ', '.join([x.name for x in columns]),
+        })
+
+    # prepare context for rendering
+    context = {'data_sources': data_sources}
+    if campaign is not None:
+        context['campaign'] = campaign
+
+    # render the campaign editor page
+    return render(
+        request=request,
+        template_name='campaign_editor.html',
+        context=context,
+    )
+
+
+@login_required
+@require_http_methods(['GET'])
+def dataset_info(request):
+    '''Renders dataset info page.'''
+
+    # validate the form
+    form_data = request.GET.copy()
+    form_data['email'] = request.user.email
+    form = forms.DatasetInfoForm(form_data)
+    if not form.is_valid():
+        return redirect(to='campaigns')
+    campaign = form.to_python()
+
+    # get data sources
+    data_sources = []
+    for data_source in slc.get_campaign_data_sources(campaign=campaign):
+        columns = slc.get_data_source_columns(data_source=data_source)
+        data_sources.append({
+            'id': data_source.id,
+            'name': data_source.name,
+            'columns': ', '.join([x.name for x in columns]),
+        })
+
+    # get participants
+    participants = slc.get_campaign_participants(campaign=campaign)
+
+    return render(
+        request=request,
+        template_name='dataset_details.html',
+        context={
+            'campaign': campaign,
+            'data_sources': data_sources,
             'participants': participants,
-            'id': user.id,
-            'session_key': user.session_key
-          },
+        },
+    )
+
+
+@login_required
+@require_http_methods(['GET'])
+def manage_researchers(request):
+    '''Renders dataset info page.'''
+
+    # validate the form
+    form_data = request.GET.copy()
+    form_data['email'] = request.user.email
+    form = forms.CampaignResearchersForm(form_data)
+    if not form.is_valid():
+        return redirect(to='campaigns')
+    campaign = form.to_python()
+
+    # get supervisors / researchers
+    supervisors = [x for x in slc.get_campaign_supervisors(campaign=campaign)]
+
+    return render(
+        request=request,
+        template_name='supervisors.html',
+        context={
+            'campaign': campaign,
+            'data_sources': data_sources,
+            'supervisors': supervisors,
+        },
+    )
+
+
+@login_required
+@require_http_methods(['GET'])
+def dq_monitor(request):
+    '''Renders data quality monitor page.'''
+
+    # validate the form
+    form_data = request.GET.copy()
+    form_data['email'] = request.user.email
+    form = forms.DataQualityGraphForm(form_data)
+    if not form.is_valid():
+        return redirect(to='campaigns')
+    campaign, plot_participant, plot_data_source, plot_date = form.to_python()
+
+    # all data sources and participants
+    all_data_sources = slc.get_campaign_data_sources(campaign=campaign)
+    all_participants = slc.get_campaign_participants(campaign=campaign)
+
+    # get data sources of interest
+    if plot_data_source is not None:
+        data_sources = [plot_data_source]
+    else:
+        data_sources = all_data_sources
+
+    # get participants of interest
+    if plot_participant is not None:
+        participants = [plot_participant]
+    else:
+        participants = all_participants
+
+    # establish time range by checking plot_date
+    if plot_date is not None:
+        from_ts = datetime.combine(plot_date, datetime.min.time())
+        till_ts = from_ts + timedelta(hours=24)
+    else:
+        from_ts = datetime.now().replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
         )
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
+        till_ts = from_ts + timedelta(hours=24)
 
+    # compute hourly stats
+    hourly_stats = collections.defaultdict(int)
+    WINDOW_SIZE = timedelta(hours=1)  # 1-hour sliding window
+    for participant in participants:
+        for data_source in data_sources:
+            # get data table
+            data_table = wrappers.DataTable(participant=participant,
+                                            data_source=data_source)
 
-@login_required
-@require_http_methods(['GET'])
-def handle_delete_campaign_api(request):
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    if 'campaign_id' in request.GET and utils.str_is_numeric(request.GET['campaign_id']):
-      campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
-      if campaign and slc.is_supervisor(user = user, campaign = campaign):
-        svc.delete_campaign(supervisor = slc.get_supervisor(user = user, campaign = campaign))
-        return redirect(to = 'campaigns-list')
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
+            # slide through the time range and compute hourly stats
+            ts = from_ts
+            while ts < till_ts:
+                amount = data_table.select_count(from_ts=ts,
+                                                 till_ts=ts + WINDOW_SIZE)
+                hourly_stats[ts.hour] += amount
+                ts += WINDOW_SIZE
 
-
-@login_required
-@require_http_methods(['GET'])
-def handle_download_data_api(request):
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    if 'campaign_id' in request.GET and utils.str_is_numeric(request.GET['campaign_id']):
-      campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
-      if campaign and slc.is_supervisor(user = user, campaign = campaign):
-        if 'participant_id' in request.GET and utils.str_is_numeric(request.GET['participant_id']):
-          target_user = slc.find_user(user_id = int(request.GET['participant_id']), email = None)
-          if target_user is not None and slc.is_participant(user = target_user, campaign = campaign):
-            # dump data data
-            dump_filepath = svc.dump_data(
-              participant = slc.get_participant(user = target_user, campaign = campaign),
-              data_source = None,
-            )
-            print(f'dump filepath : {dump_filepath}')
-            with open(dump_filepath, 'rb') as r:
-              dump_content = bytes(r.read())
-            os.remove(dump_filepath)
-
-            # archive the dump content
-            now = datetime.datetime.now()
-            filename = f'easytrack-data-{target_user.email}-{now.month}-{now.day}-{now.year} {now.hour}-{now.minute}.zip'
-            file_path = utils.get_temp_filepath(filename = filename)
-            fp = zipfile.ZipFile(file_path, 'w', zipfile.ZIP_STORED)
-            fp.writestr(f'{target_user.email}.csv', dump_content)
-            fp.close()
-            with open(file_path, 'rb') as r:
-              content = r.read()
-            os.remove(file_path)
-
-            res = HttpResponse(content = content, content_type = 'application/x-binary')
-            res['Content-Disposition'] = f'attachment; filename={filename}'
-            return res
-          else:
-            return redirect(to = 'campaigns-list')
+    # prepare hourly stats plot
+    x_vals, y_vals, max_amount = [], [], 10
+    for hour in sorted(hourly_stats.keys()):
+        # attach am/pm suffix for readability
+        if hour < 13:
+            hour = f'{hour} {"pm" if hour == 12 else "am"}'
         else:
-          return redirect(to = 'campaigns-list')
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
+            hour = f'{hour % 12} pm'
 
+        # append x and y values, and update y axis range
+        x_vals.append(hour)
+        y_vals.append(hourly_stats[hour])
+        max_amount = max(max_amount, amount)
 
-@login_required
-@require_http_methods(['GET'])
-def handle_download_csv_api(request):
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    if 'campaign_id' in request.GET and utils.str_is_numeric(request.GET['campaign_id']):
-      campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
-      if campaign and slc.is_supervisor(user = user, campaign = campaign):
-        if 'user_id' in request.GET and utils.str_is_numeric(request.GET['user_id']):
-          target_user = slc.find_user(user_id = int(request.GET['user_id']), email = None)
-          if target_user is not None and slc.is_participant(user = user, campaign = campaign):
-            dump_filepath = svc.dump_data(
-              participant = slc.get_participant(user = user, campaign = campaign),
-              data_source = None,
-            )
-          else:
-            return redirect(to = 'campaigns-list')
-        elif 'data_source_id' in request.GET and utils.str_is_numeric(request.GET['data_source_id']):
-          data_source = slc.find_data_source(data_source_id = int(request.GET['data_source_id']), name = None)
-          dump_filepaths: List[Tuple[models.Participant, str]] = list()
-          if data_source:
-            for participant in slc.get_campaign_participants(campaign = campaign):
-              dump_filepaths.append((participant, svc.dump_data(participant = participant, data_source = data_source)))
+    # prepare plotly plot and attach it to the data source
+    fig = go.Figure([go.Bar(x=x_vals, y=y_vals)])
+    fig.update_yaxes(range=[0, max_amount])
+    completeness_plot_str = plotly.offline.plot(
+        fig,
+        auto_open=False,
+        output_type="div",
+    )
 
-            # archive the dump content
-            now = datetime.datetime.now()
-            filename = f'easytrack-data-{data_source.name}-{now.month}-{now.day}-{now.year} {now.hour}-{now.minute}.zip'
-            dump_filepath = utils.get_temp_filepath(filename = filename)
-            print(f'dump filepath : {dump_filepath}')
-            fp = zipfile.ZipFile(dump_filepath, 'w', compression = zipfile.ZIP_DEFLATED, compresslevel = 9)
-            for participant, csv_filepath in dump_filepaths:
-              with open(csv_filepath, 'rb') as r:
-                fp.writestr(zinfo_or_arcname = f'{participant.user.email}.csv', data = bytes(r.read()))
-              os.remove(dump_filepath)
-            fp.close()
-          else:
-            return redirect(to = 'campaigns-list')
-        else:
-          dump_filepaths: List[Tuple[models.Participant, str]] = list()
-          for participant in slc.get_campaign_participants(campaign = campaign):
-            dump_filepaths.append((participant, svc.dump_data(participant = participant, data_source = None)))
-
-          # archive the dump content
-          now = datetime.datetime.now()
-          filename = f'easytrack-data-{now.month}-{now.day}-{now.year} {now.hour}-{now.minute}.zip'
-          dump_filepath = utils.get_temp_filepath(filename = filename)
-          print(f'dump filepath : {dump_filepath}')
-          fp = zipfile.ZipFile(dump_filepath, 'w', compression = zipfile.ZIP_DEFLATED, compresslevel = 9)
-          for participant, csv_filepath in dump_filepaths:
-            with open(csv_filepath, 'rb') as r:
-              fp.writestr(zinfo_or_arcname = f'{participant.user.email}.csv', data = bytes(r.read()))
-            os.remove(dump_filepath)
-          fp.close()
-
-        filename = os.path.basename(dump_filepath)
-        chunk_size = 8192
-        res = StreamingHttpResponse(
-          streaming_content = FileWrapper(open(dump_filepath, 'rb'), chunk_size),
-          content_type = mimetypes.guess_type(dump_filepath)[0],
-        )
-        res['Content-Length'] = os.path.getsize(dump_filepath)
-        res['Content-Disposition'] = f'attachment; filename={filename}'
-        return res
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_upload_csv_api(request):
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    if 'campaign_id' in request.GET and utils.str_is_numeric(request.GET['campaign_id']):
-      campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
-      if campaign and slc.is_supervisor(user = user, campaign = campaign):
-        if 'user_id' in request.GET and utils.str_is_numeric(request.GET['user_id']):
-          target_user = slc.find_user(user_id = int(request.GET['user_id']), email = None)
-          if target_user is not None and slc.is_participant(user = user, campaign = campaign):
-            dump_filepath = svc.dump_data(
-              participant = slc.get_participant(user = user, campaign = campaign),
-              data_source = None,
-            )
-          else:
-            return redirect(to = 'campaigns-list')
-        elif 'data_source_id' in request.GET and utils.str_is_numeric(request.GET['data_source_id']):
-          data_source = slc.find_data_source(data_source_id = int(request.GET['data_source_id']), name = None)
-          dump_filepaths: List[Tuple[models.Participant, str]] = list()
-          if data_source:
-            for participant in slc.get_campaign_participants(campaign = campaign):
-              dump_filepaths.append((participant, svc.dump_data(participant = participant, data_source = data_source)))
-
-            # archive the dump content
-            now = datetime.datetime.now()
-            filename = f'easytrack-data-{data_source.name}-{now.month}-{now.day}-{now.year} {now.hour}-{now.minute}.zip'
-            dump_filepath = utils.get_temp_filepath(filename = filename)
-            print(f'dump filepath : {dump_filepath}')
-            fp = zipfile.ZipFile(dump_filepath, 'w', compression = zipfile.ZIP_DEFLATED, compresslevel = 9)
-            for participant, csv_filepath in dump_filepaths:
-              with open(csv_filepath, 'rb') as r:
-                fp.writestr(zinfo_or_arcname = f'{participant.user.email}.csv', data = bytes(r.read()))
-              os.remove(dump_filepath)
-            fp.close()
-          else:
-            return redirect(to = 'campaigns-list')
-        else:
-          dump_filepaths: List[Tuple[models.Participant, str]] = list()
-          for participant in slc.get_campaign_participants(campaign = campaign):
-            dump_filepaths.append((participant, svc.dump_data(participant = participant, data_source = None)))
-
-          # archive the dump content
-          now = datetime.datetime.now()
-          filename = f'easytrack-data-{now.month}-{now.day}-{now.year} {now.hour}-{now.minute}.zip'
-          dump_filepath = utils.get_temp_filepath(filename = filename)
-          print(f'dump filepath : {dump_filepath}')
-          fp = zipfile.ZipFile(dump_filepath, 'w', compression = zipfile.ZIP_DEFLATED, compresslevel = 9)
-          for participant, csv_filepath in dump_filepaths:
-            with open(csv_filepath, 'rb') as r:
-              fp.writestr(zinfo_or_arcname = f'{participant.user.email}.csv', data = bytes(r.read()))
-            os.remove(dump_filepath)
-          fp.close()
-
-        filename = os.path.basename(dump_filepath)
-        chunk_size = 8192
-        res = StreamingHttpResponse(
-          streaming_content = FileWrapper(open(dump_filepath, 'rb'), chunk_size),
-          content_type = mimetypes.guess_type(dump_filepath)[0],
-        )
-        res['Content-Length'] = os.path.getsize(dump_filepath)
-        res['Content-Disposition'] = f'attachment; filename={filename}'
-        return res
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
-
-
-@login_required
-@require_http_methods(['GET'])
-def handle_download_dataset_api(request):
-  user = slc.find_user(user_id = None, email = request.user.email)
-  if user is not None:
-    if 'campaign_id' in request.GET and utils.str_is_numeric(request.GET['campaign_id']):
-      campaign = slc.get_campaign(campaign_id = int(request.GET['campaign_id']))
-      if campaign and slc.is_supervisor(user = user, campaign = campaign):
-        dump_filepaths: List[Tuple[models.Participant, str]] = list()
-        for participant in slc.get_campaign_participants(campaign = campaign):
-          dump_filepaths.append((participant, svc.dump_data(participant = participant, data_source = None)))
-
-        # archive the dump content
-        now = datetime.datetime.now()
-        filename = f'easytrack-data-{now.month}-{now.day}-{now.year} {now.hour}-{now.minute}.zip'
-        dump_filepath = utils.get_temp_filepath(filename = filename)
-        print(f'dump filepath : {dump_filepath}')
-        fp = zipfile.ZipFile(dump_filepath, 'w', compression = zipfile.ZIP_DEFLATED, compresslevel = 9)
-        for participant, csv_filepath in dump_filepaths:
-          with open(csv_filepath, 'rb') as r:
-            fp.writestr(zinfo_or_arcname = f'{participant.user.email}.csv', data = bytes(r.read()))
-          os.remove(dump_filepath)
-        fp.close()
-
-        filename = os.path.basename(dump_filepath)
-        chunk_size = 8192
-        res = StreamingHttpResponse(
-          streaming_content = FileWrapper(open(dump_filepath, 'rb'), chunk_size),
-          content_type = mimetypes.guess_type(dump_filepath)[0],
-        )
-        res['Content-Length'] = os.path.getsize(dump_filepath)
-        res['Content-Disposition'] = f'attachment; filename={filename}'
-        return res
-      else:
-        return redirect(to = 'campaigns-list')
-    else:
-      return redirect(to = 'campaigns-list')
-  else:
-    dj_logout(request = request)
-    return redirect(to = 'login')
+    plot_date_str = f'{from_ts.year}-{from_ts.month:02}-{from_ts.day:02}'
+    return render(
+        request=request,
+        template_name='dq_monitor.html',
+        context={
+            'title': 'EasyTracker',
+            'campaign': campaign,
+            'plot_date': plot_date_str,
+            'participants': all_participants,
+            'plot_participant': plot_participant,
+            'all_data_sources': all_data_sources,
+            'plot_data_source': plot_data_source,
+            'completeness_plot': completeness_plot_str,
+        },
+    )

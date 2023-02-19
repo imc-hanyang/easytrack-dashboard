@@ -1,15 +1,21 @@
 {% extends 'base.html' %}
+{% load fix_localhost %}
+
 {% block content %}
-    {% load fix_localhost %}
-    {% if records|length == 0 %}
-        <h2>[ NO DATA / EMPTY ]</h2>
+
+    <!-- Page title -->
+    <h3>Data records (raw data)</h3>
+    <hr class="mt-0 mb-5">
+
+    {% if data_records|length == 0 %}
+        <h4>[ NO DATA / EMPTY ]</h2>
         <img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/others/failure.png" alt="Under construction">
     {% else %}
-        <form id="view_data_submit_form" action="{% url 'view_data' %}" method="get" onsubmit="onFormSubmit()">
+        <form id="view_data_submit_form" action="{% url 'data-records' %}" method="get" onsubmit="onFormSubmit()">
             <input type="number" name="campaign_id" value="{{ request.GET.campaign_id }}" hidden>
             <input type="email" name="email" value="{{ request.GET.email }}" hidden>
             <input type="number" name="data_source_id" value="{{ request.GET.data_source_id }}" hidden>
-            <input type="number" name="from_timestamp" id="from_timestamp" value="{{ from_timestamp }}" hidden/>
+            <input type="number" name="from_timestamp" id="from_timestamp" value="{{ last_timestamp }}" hidden/>
             <label>
                 From time:
                 <input type="datetime-local" id="datetime_picker" oninput="onDateTimeInput()">
@@ -23,14 +29,14 @@
                 <th class="time_column">Time</th>
                 <th class="value_column">Value</th>
             </tr>
-            {% for record in records %}
+            {% for data_record in data_records %}
                 <tr class="data_source">
-                    <td>{{ record.row }}</td>
-                    <td>{{ record.timestamp }}</td>
-                    {% if record.value|length <= 512 %}
-                        <td title="{{ record.value }}">{{ record.value|truncatechars:256 }}</td>
+                    <td>{{ data_record.row }}</td>
+                    <td>{{ data_record.timestamp }}</td>
+                    {% if data_record.value|length <= 512 %}
+                        <td title="{{ data_record.value }}">{{ data_record.value|truncatechars:256 }}</td>
                     {% else %}
-                        <td>[ <i>{{ record.value|length }} byte data record</i> ]</td>
+                        <td>[ <i>{{ data_record.value|length }} byte data record</i> ]</td>
                     {% endif %}
                 </tr>
             {% endfor %}
@@ -42,11 +48,11 @@
         let dateTimeWasPicked = false;
 
         document.addEventListener("DOMContentLoaded", () => {
-            fromTimeMs = document.getElementById("from_timestamp");
+            fromTimeMs = document.getElementById("last_timestamp");
             dateTimePicker = document.getElementById("datetime_picker");
             viewDataForm = document.getElementById("view_data_submit_form");
 
-            let fromTimestamp = {% if from_timestamp %} {{ from_timestamp }} {% else %} 0 {% endif %};
+            let fromTimestamp = {% if last_timestamp %} {{ last_timestamp }} {% else %} 0 {% endif %};
             if (fromTimestamp > 0) {
                 let date = new Date(fromTimestamp);
                 let datePart = [date.getFullYear().toString().padStart(2, '0'), (date.getMonth() + 1).toString().padStart(2, '0'), date.getDate().toString().padStart(2, '0')].join('-');

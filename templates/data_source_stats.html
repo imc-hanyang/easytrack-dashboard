@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load humanize fix_localhost timestamp_hreadable %}
+
+{% block content %}
+
+    <!-- Page title -->
+    <h3>Participant's data sources</h3>
+    <hr class="mt-0 mb-5">
+    
+    <!-- Table of stats on data sources -->
+    <table class="table text-center table-hover">
+        <thead>
+            <tr>
+                <th>Data source</th>
+                <th>Amount of data records</th>
+                <th>Last sync time</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for data_source in data_sources %}
+                <tr style="cursor: pointer">
+                    
+                    <!-- data source name -->
+                    <td class="data-source align-middle" data-source-id="{{data_source.id}}" data-href="{% url 'data-records' %}?campaign_id={{ campaign.id }}&participant_id={{ participant.id }}&data_source_id={{ data_source.id }}&from_timestamp=-1" title="Data source ID = {{ data_source.id }}">
+                        {{ data_source.name }}
+                    </td>
+
+                    <!-- amount of data -->
+                    <td class="data-source align-middle" data-source-id="{{data_source.id}}" data-href="{% url 'data-records' %}?campaign_id={{ campaign.id }}&participant_id={{ participant.id }}&data_source_id={{ data_source.id }}&from_timestamp=-1">
+                        {% if data_source.amount_of_data == 0 %}
+                            <span style="color: red;">no records</span>
+                        {% else %}
+                            {{ data_source.amount_of_data|intcomma }}
+                        {% endif %}
+                    </td>
+
+                    <!-- last sync time -->
+                    <td class="data-source align-middle" data-source-id="{{data_source.id}}" data-href="{% url 'data-records' %}?campaign_id={{ campaign.id }}&email={{ participant.email }}&data_source_id={{ data_source.id }}&from_timestamp=-1">
+                        {% if data_source.last_sync_time|timestamp_hreadable == 'n/a' %}
+                            <span style="color: red;">never</span>
+                        {% else %}
+                            {{data_source.last_sync_time|timestamp_hreadable}}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Context menu -->
+    <div class="container">
+        <div>
+            <div class="dropdown-menu dropdown-menu-sm" id="context-menu">
+                <a id="btn_raw_data" class="dropdown-item" style="cursor: pointer">View raw data</a>
+                <a id="btn_monitor_dq" class="dropdown-item" style="cursor: pointer">Monitor Data Quality</a>
+              </div>
+        </div>
+    </div>
+
+    <script>
+        // cancel context menu if clicked outside
+        $(document).click(function() {
+            if ($("#context-menu").hasClass("show")) {
+                $("#context-menu").removeClass("show").hide();
+            }
+        });
+
+        // open raw-data when a data source (row) is clicked
+        $('td[data-href]').click(function () {
+            window.location.href = $(this).attr('data-href');
+        });
+
+        // show/hide context menu on data source row is right clicked
+        $('.data-source').on('contextmenu', function(e) {
+            // show context menu and set its position
+            var top = e.pageY - 10;
+            var left = e.pageX - 90;
+            $("#context-menu").css({display: "block", top: top, left: left}).addClass("show");
+            
+            // get data source id from e element's data-source-id attribute
+            const dataSourceId = e.target.attributes['data-source-id'].value;
+            
+            // set campaign id for context menu buttons
+            $('#btn_raw_data').click(() => window.location.href = e.target.attributes['data-href'].value);
+            $("#btn_monitor_dq").attr('href', `{% url 'dq-monitor' %}?campaign_id={{campaign.id}}&participant_id={{participant.id}}&data_source_id=${dataSourceId}`);
+            
+            // block default Webbrowser right click menu
+            return false;
+        }).on("click", function() {
+            // hide context menu if clicked outside
+            $("#context-menu").removeClass("show").hide();
+        });
+        
+        // context menu button clicks
+        $("#context-menu a").on("click", function() {
+            $(this).parent().removeClass("show").hide();
+        });
+    </script>
+{% endblock %}

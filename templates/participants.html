@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load humanize fix_localhost timestamp_hreadable %}
+
+{% block content %}
+    
+    <!-- Page title -->
+    <h3>Participants</h3>
+    <hr class="mt-0 mb-5">
+
+    <!-- Table of participants -->
+    <table class="table text-center table-hover">
+        <thead>
+            <tr>
+                <th>Participant ID</th>
+                <th>Participant name</th>
+                <th>Participation duration</th>
+                <th>Amount of data records</th>
+                <th>Last heartbeat time</th>
+                <th>Last sync time</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stats in participants_stats %}
+            <tr style="cursor: pointer">
+                <!-- Participant ID -->
+                <td class="participant align-middle" participant-id="{{ stats.participant_id }}" data-href="{% url 'data-sources' %}?campaign_id={{ campaign.id }}&participant_id={{ stats.participant_id }}">
+                    {{ stats.participant_id }}
+                </td>
+
+                <!-- Participant name -->
+                <td class="participant align-middle" participant-id="{{ stats.participant_id }}" data-href="{% url 'data-sources' %}?campaign_id={{ campaign.id }}&participant_id={{ stats.participant_id }}" title="{{ stats.participant_email }}">
+                    {{ stats.participant_name }}
+                </td>
+
+                <!-- Participation duration -->
+                <td class="participant align-middle" participant-id="{{ stats.participant_id }}" data-href="{% url 'data-sources' %}?campaign_id={{ campaign.id }}&participant_id={{ stats.participant_id }}">
+                    {% if stats.participation_day == 0 %}
+                        <span style="color: blue;">started today</span>
+                    {% else %}
+                        {{ stats.participation_day }} days
+                    {% endif %}
+                </td>
+
+                <!-- Amount of data -->
+                <td class="participant align-middle" participant-id="{{ stats.participant_id }}" data-href="{% url 'data-sources' %}?campaign_id={{ campaign.id }}&participant_id={{ stats.participant_id }}">
+                    {% if stats.amount_of_data == 0 %}
+                        <span style="color: red;">no records</span>
+                    {% else %}
+                        {{ stats.amount_of_data|intcomma }}
+                    {% endif %}
+                </td>
+
+                <!-- Last heartbeat time -->
+                <td class="participant align-middle" participant-id="{{ stats.participant_id }}" data-href="{% url 'data-sources' %}?campaign_id={{ campaign.id }}&participant_id={{ stats.participant_id }}">
+                    {{ stats.last_heartbeat_time }}
+                </td>
+
+                <!-- Last sync time -->
+                <td class="participant align-middle" participant-id="{{ stats.participant_id }}" data-href="{% url 'data-sources' %}?campaign_id={{ campaign.id }}&participant_id={{ stats.participant_id }}">
+                    {% if stats.last_sync_time|timestamp_hreadable == 'n/a' %}
+                        <span style="color: red;">never</span>
+                    {% else %}
+                        {{ stats.last_sync_time|timestamp_hreadable }}
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 'Join as a participant' button -->
+    {% if debug and not joined_as_participant %}
+        <div class="text-center">
+            <a id="btnJoinAsParticipant" type="button" class="btn btn-primary btn-lg">Join as a participant</a>
+        </div>
+    {% endif %}
+
+    <!-- Context menu -->
+    <div class="container">
+        <div>
+            <div class="dropdown-menu dropdown-menu-sm" id="context-menu">
+                <a id="btn_data_sources" class="dropdown-item" style="cursor: pointer">Data sources</a>
+                <a id="btn_monitor_dq" class="dropdown-item" style="cursor: pointer">Monitor Data Quality</a>
+              </div>
+        </div>
+    </div>
+
+    <script>
+        // cancel context menu if clicked outside
+        $(document).click(function() {
+            if ($("#context-menu").hasClass("show")) {
+                $("#context-menu").removeClass("show").hide();
+            }
+        });
+        
+        // open participant's data sources when a participant (row) is clicked
+        $('td[data-href]').click(function () {
+            window.location.href = $(this).attr('data-href');
+        });
+
+        // show/hide context menu on participant row is right clicked
+        $('.participant').on('contextmenu', function(e) {
+            // show context menu and set its position
+            var top = e.pageY - 10;
+            var left = e.pageX - 90;
+            $("#context-menu").css({display: "block", top: top, left: left}).addClass("show");
+            
+            
+            // get participant id from e element's participant-id attribute
+            const participantId = e.target.attributes['participant-id'].value;
+            
+            // set campaign id for context menu buttons
+            $('#btn_data_sources').click(() => window.location.href = e.target.attributes['data-href'].value);
+            $("#btn_monitor_dq").attr('href', `{% url 'dq-monitor' %}?campaign_id={{campaign.id}}&participant_id=${participantId}`);
+            
+            // block default Webbrowser right click menu
+            return false;
+        }).on("click", function() {
+            // hide context menu if clicked outside
+            $("#context-menu").removeClass("show").hide();
+        });
+        
+        // context menu button clicks
+        $("#context-menu a").on("click", function() {
+            $(this).parent().removeClass("show").hide();
+        });
+
+        // join as a participant button click
+        $('#btnJoinAsParticipant').click(function() {
+            $.ajax({
+                url: "{% url 'join-as-participant-api' %}",
+                type: "POST",
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                    email: '{{ user.email }}',
+                    campaign_id: '{{ campaign.id }}',
+                },
+                success: function() {
+                    window.location.reload();
+                }
+            });
+        });
+    </script>
+{% endblock %}

@@ -1,35 +1,79 @@
 from django.urls import path, include
 from django.contrib import admin
 from dashboard import views
+from django.urls import include
 
 urlpatterns = [
-   # authentication
-  path('login/', views.handle_login_api, name = 'login'),
-  path('logout/', views.handle_logout_api, name = 'logout'),
-  path('dev_login/', views.handle_development_login_api, name = 'dev-login'),
+    # google oAuth and site veriification
+    path('google-auth/', include('social_django.urls', namespace='social')),
+    path('google-site-verification.html', views.handle_google_verification),
 
-   # easytrack navigation
-  path('', views.handle_campaigns_list, name = 'campaigns-list'),
-  path('campaign/', views.handle_participants_list, name = 'participants-list'),
-  path('participant/', views.handle_participants_data_list, name = 'participant'),
-  path('dev-join/', views.dev_join_campaign, name = 'dev-join-campaign'),
-  path('data/', views.handle_raw_samples_list, name = 'view_data'),
-  path('edit/', views.handle_campaign_editor, name = 'campaign-editor'),
-  path('researchers/', views.handle_researchers_list, name = 'manage-researchers'),
+    # REST APIs
+    path(
+        'api/',
+        include('api.urls'),
+    ),
 
-   # API (e.g., download file)
-  path('dataset-info/', views.handle_dataset_info, name = 'dataset-info'),
-  path('download-dataset/', views.handle_download_dataset_api, name = 'download-dataset'),
-  path('delete/', views.handle_delete_campaign_api, name = 'delete-campaign'),
-  path('download-data/', views.handle_download_data_api, name = 'download-data'),
-  path('download-csv/', views.handle_download_csv_api, name = 'download-csv'),
-  path('upload-csv/', views.handle_upload_csv_api, name = 'upload-csv'),
+    # Login page
+    path(
+        'login/',
+        views.login,
+        name='login',
+    ),
 
-   # visuals (e.g., DQ)
-  path('et-monitor/', views.handle_easytrack_monitor, name = 'easytrack-monitor'),
+    # Campaigns (Index)
+    path(
+        '',
+        views.campaigns,
+        name='campaigns',
+    ),
 
-   # others
-  path('admin/', admin.site.urls),
-  path('google43e44b3701ba10c8.html', views.handle_google_verification),
-  path('google-auth/', include('social_django.urls', namespace = 'social')),
+    # Participants (Campaign -> Participants)
+    path(
+        'participants/',
+        views.participants,
+        name='participants',
+    ),
+
+    # Data sources and statistics (Campaign -> Participant -> Data sources and statistics)
+    path(
+        'data_sources/',
+        views.data_sources,
+        name='data-sources',
+    ),
+
+    # Raw data records (Campaign -> Participant -> Data source -> Raw data records)
+    path(
+        'data_records/',
+        views.data_records,
+        name='data-records',
+    ),
+
+    # Campaign editor (Campaign -> Edit)
+    path(
+        'edit/',
+        views.campaign_editor,
+        name='campaign-editor',
+    ),
+
+    # Dataset information (participants and data sources)
+    path(
+        'dataset-info/',
+        views.dataset_info,
+        name='dataset-info',
+    ),
+
+    # Researcher management
+    path(
+        'researchers/',
+        views.manage_researchers,
+        name='manage-researchers',
+    ),
+
+    # Data quality monitoring
+    path(
+        'dq-monitor/',
+        views.dq_monitor,
+        name='dq-monitor',
+    ),
 ]

@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load humanize fix_localhost campaign_participants_count %}
+
+{% block content %}
+
+    <!-- Page title -->
+    <h3>Campaigns</h3>
+    <hr class="mt-0 mb-5">
+
+    <!-- Table of campaigns -->
+    <table class="table text-center table-hover">
+        <thead>
+            <tr>
+                <th>Campaign ID</th>
+                <th>Campaign title</th>
+                <th>Campaign description</th>
+                <th>Campaign participants</th>
+            </tr>
+        </thead>
+        
+        <tbody>
+            {% for campaign in campaigns %}
+                <tr style="cursor: pointer">
+                    <!-- Campaign ID -->
+                    <td class="campaign align-middle" campaign-id="{{campaign.id}}" created-by-me="{% if campaign.owner == user %}true{% else %}false{% endif %}" data-href="{% url 'participants' %}?campaign_id={{ campaign.id }}">
+                        {{campaign.id}}
+                    </td>
+
+                    <!-- Campaign name/title -->
+                    <td class="campaign align-middle" campaign-id="{{campaign.id}}" created-by-me="{% if campaign.owner == user %}true{% else %}false{% endif %}" title="{{ campaign.name }}" data-href="{% url 'participants' %}?campaign_id={{ campaign.id }}">
+                        {{campaign.name|truncatechars:40}}
+                    </td>
+
+                    <!-- Campaign description/notes -->
+                    <td class="campaign align-middle" campaign-id="{{campaign.id}}" created-by-me="{% if campaign.owner == user %}true{% else %}false{% endif %}" title="{{ campaign.notes }}" data-href="{% url 'participants' %}?campaign_id={{ campaign.id }}">
+                        {% if campaign.notes|length == 0 %}
+                            -
+                        {% else %}
+                            {{ campaign.notes|truncatechars:40 }}
+                        {% endif %}
+                    </td>
+
+                    <!-- Number of participants -->
+                    <td class="campaign align-middle" campaign-id="{{campaign.id}}" created-by-me="{{campaign.created_by_me}}" title="Number of participants" data-href="{% url 'participants' %}?campaign_id={{ campaign.id }}">
+                        {% if  campaign|campaign_participants_count == 0 %}
+                            <span style="color: red;">no participants</span>
+                        {% else %}
+                            {{ campaign|campaign_participants_count|intcomma }}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Button for creating new campaign -->
+    <div class="text-center">
+        <a type="button" class="btn btn-primary btn-lg" href="{% url 'campaign-editor' %}">Create a new campaign</a>
+    </div>
+
+    <!-- Context menu -->
+    <div class="container">
+        <div>
+            <div class="dropdown-menu dropdown-menu-sm" id="context-menu">
+                <a id="btn_participants" class="dropdown-item" style="cursor: pointer">Participants</a>
+                <a id="btn_edit_campaign" class="dropdown-item" style="cursor: pointer">Configure/edit</a>
+                <a id="btn_dataset_details" class="dropdown-item" style="cursor: pointer">Dataset details</a>
+                <a id="btn_supervisors" class="dropdown-item" style="cursor: pointer">Supervisors</a>
+                <a id="btn_monitor_dq" class="dropdown-item" style="cursor: pointer">Monitor Data Quality</a>
+                <a id="btn_delete_campaign" class="dropdown-item text-danger" onclick="deleteCampaignClick(this);" style="cursor: pointer">Delete Campaign</a>
+              </div>
+        </div>
+    </div>
+
+    <script>
+        // function to delete campaign with confirmation prompt
+        $('#btn_delete_campaign').click(function() {
+            if (confirm("This is a destructive action. Proceed with deletion?")) {
+                if (confirm("This will delete your campaign and all its data. Do you confirm?")) {
+                    let campaignId = $('#btn_delete_campaign').attr('campaign-id');
+                    $.ajax({
+                        url: "{% url 'delete-campaign-api' %}",
+                        type: "delete",
+                        data: {
+                            email: '{{ user.email }}',
+                            campaign_id: campaignId,
+                        },
+                        beforeSend: function(xhr) {
+                            xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+                        },
+                        success: function() {
+                            window.location.reload();
+                            alert("Campaign deleted successfully.");
+                        },
+                        error: function(error) {
+                            alert("Error: " + error.responseText);
+                        }
+                    });
+                }
+            }
+        });
+
+        // cancel context menu if clicked outside
+        $(document).click(function() {
+            if ($("#context-menu").hasClass("show")) {
+                $("#context-menu").removeClass("show").hide();
+            }
+        });
+
+        // open campaign details when a campaign (row) is clicked
+        $('td[data-href]').click(function () {
+            window.location.href = $(this).attr('data-href');
+        });
+
+        // show/hide context menu on campaign row is right clicked
+        $('.campaign').on('contextmenu', function(e) {
+            // show context menu and set its position
+            var top = e.pageY - 10;
+            var left = e.pageX - 90;
+            $("#context-menu").css({display: "block", top: top, left: left}).addClass("show");
+            
+            // get campaign id from e element's campaign-id attribute
+            const campaignId = e.target.attributes['campaign-id'].value;
+            const createdByMe = e.target.attributes['created-by-me'].value;
+
+            // set campaign id for context menu buttons
+            $('#btn_participants').click(() => window.location.href = e.target.attributes['data-href'].value);
+            $("#btn_edit_campaign").attr('href', `{% url 'campaign-editor' %}?campaign_id=${campaignId}&edit`);
+            $("#btn_dataset_details").attr('href', `{% url 'dataset-info' %}?campaign_id=${campaignId}`);
+            $("#btn_supervisors").attr('href', `{% url 'manage-researchers' %}?campaign_id=${campaignId}`);
+            $("#btn_monitor_dq").attr('href', `{% url 'dq-monitor' %}?campaign_id=${campaignId}`);
+            $("#btn_delete_campaign").attr('campaign-id', `${campaignId}`);
+
+            // hide destructive actions if user is not the campaign creator
+            // (it's just for visuals, can't perform destructive actions even if the buttons are shown)
+            if (createdByMe == 'False') {
+                $("#btn_supervisors").hide();
+                $("#btn_delete_campaign").hide();
+            } else {
+                $("#btn_supervisors").show();
+                $("#btn_delete_campaign").show();
+            }
+
+            // block default Webbrowser right click menu
+            return false;
+        }).on("click", function() {
+            // hide context menu if clicked outside
+            $("#context-menu").removeClass("show").hide();
+        });
+        
+        // context menu button clicks
+        $("#context-menu a").on("click", function() {
+            $(this).parent().removeClass("show").hide();
+        });
+    </script>
+{% endblock %}
