@@ -289,9 +289,9 @@
                     // add column to data source columns
                     dataSourceColumns.push({
                         name: columnName,
-                        type: columnType,
-                        categorical: columnCategorical,
-                        accepted_values: columnAcceptedValues
+                        column_type: columnType,
+                        is_categorical: columnCategorical,
+                        accept_values: columnAcceptedValues
                     });
                 });
                 if (dataSourceColumns.length === 0) {
@@ -340,6 +340,7 @@
                     alert("Please fill in all required fields!");
                     return;
                 }
+                let campaignDescription = $('#campaignDescription').val();
 
                 // validate start and end time
                 let startTimeTs = new Date(startTime).getTime();
@@ -370,23 +371,30 @@
                     return;
                 }
                 
+                // prepare data for ajax call
+                const requestURL = {% if campaign is None %}"{% url 'create-campaign-api' %}"{% else %}"{% url 'edit-campaign-api' %}"{% endif %};
+                const requestData = {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                    email: '{{ request.user.email }}',
+                    {% if campaign is not None %}campaign_id: {{ campaign.id }},{%endif%}
+                    name: campaignName,
+                    description: campaignDescription,
+                    start_datetime: startTime,
+                    end_datetime: endTime,
+                    data_sources: JSON.stringify(selectedDataSources),
+                };
+                
                 // save campaign with ajax call and redirect to campaigns page
                 $.ajax({
-                    url: "{% url 'campaign-editor' %}",
+                    url: requestURL,
                     type: "POST",
-                    data: {
-                        csrfmiddlewaretoken: '{{ csrf_token }}',
-                        name: campaignName,
-                        start_time: startTime,
-                        end_time: endTime,
-                        data_sources: selectedDataSources,
-                    },
+                    data: requestData,
                     success: function(data) {
                         alert("Campaign saved successfully!");
                         window.location.href = '{% url "campaigns" %}';
                     },
-                    error: function(data) {
-                        alert("Failed to save campaign! Please try again later.");
+                    error: function(error) {
+                        alert(`Error while saving campaign. Error: ${error.responseText}`);
                     }
                 });
             });

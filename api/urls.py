@@ -31,4 +31,18 @@ urlpatterns = [
         views.JoinAsParticipant.as_view(),
         name='join-as-participant-api',
     ),
+
+    # create campaign
+    path(
+        'create_campaign/',
+        views.CreateCampaign.as_view(),
+        name='create-campaign-api',
+    ),
+
+    # update existing campaign
+    path(
+        'edit_campaign/',
+        views.EditCampaign.as_view(),
+        name='edit-campaign-api',
+    ),
 ]
