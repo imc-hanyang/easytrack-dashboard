@@ -3,7 +3,8 @@
 
 {% block content %}
     <!-- Page title -->
-    <h3> {{campaign.name}}'s supervisors </h1>
+    <h3> Supervisors / managing researchers </h1>
+    <hr class="mt-0 mb-5">
 
     <table class="table text-center table-hover">
         <thead>
@@ -13,16 +14,16 @@
             </tr>
         </thead>
         <tbody>
-            {% for researcher in researchers %}
+            {% for supervisor in supervisors %}
                 <tr style="cursor: pointer">
                     <!-- Supervisor's name -->
-                    <td class="supervisor align-middle" supervisor-email="{{researcher.email}}" title="{{ researcher.name }}">
-                        {{ researcher.name }}
+                    <td class="supervisor align-middle" supervisor-email="{{ supervisor.user.email }}" title="{{ supervisor.user.name }}">
+                        {{ supervisor.user.name }}
                     </td>
 
                     <!-- Supervisor's email -->
-                    <td class="supervisor align-middle" supervisor-email="{{researcher.email}}" title="{{ researcher.email }}">
-                        {{ researcher.email }}
+                    <td class="supervisor align-middle" supervisor-email="{{ supervisor.user.email }}" title="{{ supervisor.user.email }}">
+                        {{ supervisor.user.email }}
                     </td>
                 </tr>
             {% endfor %}

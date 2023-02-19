@@ -52,28 +52,32 @@ urlpatterns = [
         name='campaign-editor',
     ),
 
-    # TODO: continue from here
+    # Dataset information (participants and data sources)
+    path(
+        'dataset-info/',
+        views.dataset_info,
+        name='dataset-info',
+    ),
+
+    # Researcher management
     path(
         'researchers/',
-        views.handle_researchers_list,
+        views.manage_researchers,
         name='manage-researchers',
     ),
 
-    # API (e.g., download file)
+    # Data quality monitoring
     path(
-        'dataset-info/',
-        views.handle_dataset_info,
-        name='dataset-info',
+        'dq-monitor/',
+        views.dq_monitor,
+        name='dq-monitor',
     ),
+
+    # TODO: continue from here
     path(
         'download-dataset/',
         views.handle_download_dataset_api,
         name='download-dataset',
-    ),
-    path(
-        'delete/',
-        views.handle_delete_campaign_api,
-        name='delete-campaign',
     ),
     path(
         'download-data/',
@@ -91,12 +95,6 @@ urlpatterns = [
         name='upload-csv',
     ),
 
-    # visuals (e.g., DQ)
-    path(
-        'et-monitor/',
-        views.handle_easytrack_monitor,
-        name='easytrack-monitor',
-    ),
 
     # others
     path('admin/', admin.site.urls),

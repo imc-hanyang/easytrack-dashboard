@@ -6,14 +6,14 @@ from api import views
 urlpatterns = [
     # google oauth login
     path(
-        'login_google',
+        'login-google',
         views.LoginGoogle.as_view(),
         name='google-login-api',
     ),
 
     # test account
     path(
-        'login_demo',
+        'login-demo',
         views.LoginTest.as_view(),
         name='demo-login-api',
     ),
@@ -27,22 +27,29 @@ urlpatterns = [
 
     # join campaign (participant)
     path(
-        'join_as_participant/',
+        'join-as-participant/',
         views.JoinAsParticipant.as_view(),
         name='join-as-participant-api',
     ),
 
     # create campaign
     path(
-        'create_campaign/',
+        'create-campaign/',
         views.CreateCampaign.as_view(),
         name='create-campaign-api',
     ),
 
     # update existing campaign
     path(
-        'edit_campaign/',
+        'edit-campaign/',
         views.EditCampaign.as_view(),
         name='edit-campaign-api',
+    ),
+
+    # delete campaign
+    path(
+        'delete-campaign/',
+        views.DeleteCampaign.as_view(),
+        name='delete-campaign-api',
     ),
 ]

@@ -193,7 +193,7 @@ class Logout(generics.GenericAPIView):
         return response.Response(status=status.HTTP_201_CREATED)
 
 
-class JoinAsParticipant(generics.GenericAPIView):
+class JoinAsParticipant(generics.CreateAPIView):
     '''Researcher/supervisor also joins a campaign as a participant.'''
 
     class InputSerializer(serializers.Serializer):
@@ -226,12 +226,11 @@ class JoinAsParticipant(generics.GenericAPIView):
 
             return attrs
 
-    http_method_names = ['post']
     serializer_class = InputSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request, *args, **kwargs):
-        '''POST for JoinAsParticipant.'''
+    def create(self, request, *args, **kwargs):
+        '''CREATE method for JoinAsParticipant.'''
 
         # validate input data
         serializer = JoinAsParticipant.InputSerializer(data=request.data)
@@ -299,8 +298,12 @@ class CreateCampaign(generics.CreateAPIView):
                     return validated
 
             name = serializers.CharField(required=True, allow_blank=False)
-            columns = serializers.ListField(child=ColumnSerializer(),
-                                            allow_empty=True)
+            columns = serializers.ListField(
+                child=ColumnSerializer(),
+                allow_empty=True,
+                required=False,
+                allow_null=True,
+            )
 
             def validate(self, attrs):
                 '''Validate input data.'''
@@ -360,12 +363,11 @@ class CreateCampaign(generics.CreateAPIView):
 
             return validated
 
-    http_method_names = ['post']
     serializer_class = InputSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request, *args, **kwargs):
-        '''POST method for CreateCampaign view.'''
+    def create(self, request, *args, **kwargs):
+        '''CREATE method for CreateCampaign view.'''
 
         # validate input data
         serializer = CreateCampaign.InputSerializer(data=request.data)
@@ -551,12 +553,11 @@ class EditCampaign(generics.UpdateAPIView):
 
             return validated
 
-    http_method_names = ['post']
     serializer_class = InputSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request, *args, **kwargs):
-        '''POST method for JoinAsParticipant view.'''
+    def update(self, request, *args, **kwargs):
+        '''UPDATE method for JoinAsParticipant view.'''
 
         # validate input data
         serializer = EditCampaign.InputSerializer(data=request.data)
@@ -566,9 +567,16 @@ class EditCampaign(generics.UpdateAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # remove previous campaign data sources
+        # update campaign metadata
         campaign_id = serializer.validated_data['campaign_id']
         campaign = slc.get_campaign(campaign_id=campaign_id)
+        campaign.name = serializer.validated_data['name']
+        campaign.description = serializer.validated_data['description']
+        campaign.start_datetime = serializer.validated_data['start_datetime']
+        campaign.end_datetime = serializer.validated_data['end_datetime']
+        campaign.save()
+
+        # remove previous campaign data sources
         for data_source in slc.get_campaign_data_sources(campaign=campaign):
             svc.remove_campaign_data_source(
                 campaign=campaign,
@@ -596,7 +604,7 @@ class EditCampaign(generics.UpdateAPIView):
                             is_categorical=column['is_categorical'],
                             accept_values=column.get('accept_values', None),
                         ))
-                
+
                 # create data source
                 tmp = svc.create_data_source(
                     name=data_source['name'],
@@ -607,3 +615,51 @@ class EditCampaign(generics.UpdateAPIView):
             svc.add_campaign_data_source(campaign=campaign, data_source=tmp)
 
         return response.Response(status=status.HTTP_201_CREATED)
+
+
+class DeleteCampaign(generics.DestroyAPIView):
+    '''Delete campaign view.'''
+
+    class InputSerializer(serializers.Serializer):
+        '''Input serializer for DeleteCampaign view.'''
+
+        email = serializers.EmailField(required=True, allow_blank=False)
+        campaign_id = serializers.IntegerField(required=True, allow_null=False)
+
+        def validate(self, attrs):
+            '''Validate input data.'''
+
+            # check if user exists
+            user = slc.find_user(user_id=None, email=attrs['email'])
+            if not user:
+                raise ValidationError('User does not exist')
+
+            # check if campaign exists
+            campaign = slc.get_campaign(campaign_id=attrs['campaign_id'])
+            if not campaign:
+                raise ValidationError('Campaign does not exist')
+            if campaign.owner != user:
+                raise ValidationError('User is not the owner of the campaign')
+
+            return attrs
+
+    serializer_class = InputSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def destroy(self, request, *args, **kwargs):
+        '''DELETE method for DeleteCampaign view.'''
+
+        # validate input data
+        serializer = DeleteCampaign.InputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return response.Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # delete campaign
+        campaign_id = serializer.validated_data['campaign_id']
+        campaign = slc.get_campaign(campaign_id=campaign_id)
+        campaign.delete().execute()
+
+        return response.Response(status=status.HTTP_200_OK)

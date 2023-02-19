@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <!-- Page title -->
+    <h3>Data Quality monitoring</h3>
+    <hr class="mt-0 mb-5">
+
+    <!-- Plot configuration -->
+    <div class="card shadow p-3 mt-5">
+        <div class="ps-4 pe-4 pb-4 pt-2">
+            <!-- Metadata section title -->
+            <h5 class="mt-3 text-primary">Plot configuration</h5>
+            <!-- Helper text that explains section -->
+            <span class="small text-muted mt-1">You can select the participant, data source, or date for plots.</span>
+    
+            <!-- Plot configuration form (participant, data source, date, and plot buttons) -->
+            <div class="form-group mt-4">
+                
+                <!-- Participant, data source, and date selections -->
+                <div class="row">
+                    
+                    <!-- Participant selection -->
+                    <div class="col">
+                        <label class="form-label" for="participant_id">
+                            Participant
+                        </label>
+                        <select class="form-control" name="participant_id" style="cursor: pointer">
+                            <option value="" {% if plot_participant is None %}selected{% endif %}>
+                                All campaign participants combined
+                            </option>
+                            {% for participant in participants %}
+                                <option value="{{ participant.user.id }}" {% if plot_participant and plot_participant.user.id == participant.user.id %}selected{% endif %}>
+                                    {{ participant.user.name }} (ID = {{ participant.user.id }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Data source selection -->
+                    <div class="col">
+                        <label class="form-label" for="data_source_id">
+                            Data source
+                        </label>
+                        <select class="form-control" name="data_source_id" style="cursor: pointer">
+                            <option value="" {% if plot_data_source is None %}selected{% endif %}>
+                                All campaign data sources combined
+                            </option>
+                            {% for data_source in all_data_sources %}
+                                <option value="{{ data_source.id }}" {% if plot_data_source and plot_data_source.name == data_source.name %}selected{% endif %}>
+                                    {{ data_source.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Date selection -->
+                    <div class="col">
+                        <label class="form-label" for="plot_date">
+                            Date
+                        </label>
+                        <input class="form-control" type="date" name="plot_date" value="{{ plot_date }}" style="cursor: pointer">
+                    </div>
+                    
+                    <!-- Plot button -->
+                    <div class="col">
+                        <label class="form-label" for="btn_plot">
+                            Action
+                        </label>
+                        <input class="form-control"  name="btn_plot" type="submit" value="Plot">
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Plotly chart will be drawn inside this DIV -->
+    <div class="card shadow p-3 mt-5">
+        <div class="ps-4 pe-4 pb-4 pt-2">
+            <!-- Metadata section title -->
+            <h5 class="mt-3 text-primary">Hourly data completeness plot</h5>
+            <!-- Helper text that explains section -->
+            <span class="small text-muted mt-1">Each bar represents amount of selected data in one hour bin.</span>
+    
+            <!-- Plotly bar chart -->
+            {{ completeness_plot|safe }}
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('input[name="btn_plot"]').click(function() {
+                // Get selected participant ID
+                var participant_id = $('select[name="participant_id"]').val();
+                
+                // Get selected data source ID
+                var data_source_id = $('select[name="data_source_id"]').val();
+                
+                // Get selected date
+                var plot_date = $('input[name="plot_date"]').val();
+                
+                // Construct the new URL with selected values
+                var href = '{% url "dq-monitor" %}?campaign_id={{ campaign.id }}';
+                if (participant_id) {
+                    href += `&participant_id=${participant_id}`;
+                }
+                if (data_source_id) {
+                    href += `&data_source_id=${data_source_id}`;
+                }
+                if (plot_date) {
+                    href += `&plot_date=${plot_date}`;
+                }
+
+                // Redirect to the new URL
+                window.location.href = href;
+            });
+        });
+    </script>
+{% endblock %}

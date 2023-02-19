@@ -4,7 +4,8 @@
 {% block content %}
 
     <!-- Page title -->
-    <h3>{{ title }}</h3>
+    <h3>Campaigns</h3>
+    <hr class="mt-0 mb-5">
 
     <!-- Table of campaigns -->
     <table class="table text-center table-hover">
@@ -77,8 +78,25 @@
         $('#btn_delete_campaign').click(function() {
             if (confirm("This is a destructive action. Proceed with deletion?")) {
                 if (confirm("This will delete your campaign and all its data. Do you confirm?")) {
-                    alert($('#btn_delete_campaign').attr('data-href'));
-                    window.location.href = $('#btn_delete_campaign').attr('data-href');
+                    let campaignId = $('#btn_delete_campaign').attr('campaign-id');
+                    $.ajax({
+                        url: "{% url 'delete-campaign-api' %}",
+                        type: "delete",
+                        data: {
+                            email: '{{ user.email }}',
+                            campaign_id: campaignId,
+                        },
+                        beforeSend: function(xhr) {
+                            xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+                        },
+                        success: function() {
+                            window.location.reload();
+                            alert("Campaign deleted successfully.");
+                        },
+                        error: function(error) {
+                            alert("Error: " + error.responseText);
+                        }
+                    });
                 }
             }
         });
@@ -112,8 +130,8 @@
             $("#btn_dataset_details").attr('href', `{% url 'dataset-info' %}?campaign_id=${campaignId}`);
             $("#btn_supervisors").attr('href', `{% url 'manage-researchers' %}?campaign_id=${campaignId}`);
             $("#btn_download_dataset").attr('href', `{% url 'download-dataset' %}?campaign_id=${campaignId}`);
-            $("#btn_monitor_dq").attr('href', `{% url 'easytrack-monitor' %}?campaign_id=${campaignId}&data_source_name=all`);
-            $("#btn_delete_campaign").attr('data-href', `{% url 'delete-campaign' %}?campaign_id=${campaignId}`);
+            $("#btn_monitor_dq").attr('href', `{% url 'dq-monitor' %}?campaign_id=${campaignId}`);
+            $("#btn_delete_campaign").attr('campaign-id', `${campaignId}`);
 
             // hide destructive actions if user is not the campaign creator
             // (it's just for visuals, can't perform destructive actions even if the buttons are shown)

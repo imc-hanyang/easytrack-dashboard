@@ -1,8 +1,9 @@
 ''' Forms for the dashboard app (validation) '''
 
 # stdlib
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import json
+from datetime import datetime
 
 # 3rd party
 from django import forms
@@ -50,6 +51,68 @@ class CampaignsForm(forms.Form):
 
 class CampaignEditorForm(forms.Form):
     '''Form for campaign editor request/view validation'''
+
+    email = forms.EmailField(required=True)
+    campaign_id = forms.IntegerField(required=False)
+
+    def clean(self):
+        '''Validate form data'''
+        value = super().clean()
+        if self.errors:
+            return value
+
+        # Validate campaign if campaign_id is provided
+        if value['campaign_id']:
+            campaign = slc.get_campaign(campaign_id=value['campaign_id'])
+            if not campaign:
+                raise forms.ValidationError('Invalid Campaign ID')
+
+        return value
+
+    def to_python(self):
+        '''Convert form data to python data'''
+        value = self.clean()
+
+        # return campaign or None
+        campaign_id = value.get('campaign_id', None)
+        if campaign_id:
+            return slc.get_campaign(campaign_id=campaign_id)
+        return None
+
+
+class DatasetInfoForm(forms.Form):
+    '''Form for dataset info request/view validation'''
+
+    email = forms.EmailField(required=True)
+    campaign_id = forms.IntegerField(required=False)
+
+    def clean(self):
+        '''Validate form data'''
+        value = super().clean()
+        if self.errors:
+            return value
+
+        # Validate campaign if campaign_id is provided
+        if value['campaign_id']:
+            campaign = slc.get_campaign(campaign_id=value['campaign_id'])
+            if not campaign:
+                raise forms.ValidationError('Invalid Campaign ID')
+
+        return value
+
+    def to_python(self):
+        '''Convert form data to python data'''
+        value = self.clean()
+
+        # get campaign
+        campaign = slc.get_campaign(campaign_id=value['campaign_id'])
+
+        # return campaigns
+        return campaign
+
+
+class CampaignResearchersForm(forms.Form):
+    '''Form for campaign researchers request/view validation'''
 
     email = forms.EmailField(required=True)
     campaign_id = forms.IntegerField(required=False)
@@ -289,3 +352,90 @@ class DataRecordsForm(forms.Form):
 
         # return user, campaign, participant, data source, data records, and last timestamp
         return user, campaign, participant, data_source, data_records, from_timestamp
+
+
+class DataQualityGraphForm(forms.Form):
+    email = forms.EmailField(required=True)
+    campaign_id = forms.IntegerField(required=True)
+    participant_id = forms.IntegerField(required=False)
+    data_source_id = forms.IntegerField(required=False)
+    plot_date = forms.DateField(required=False)
+
+    def clean(self):
+        '''Validate form data'''
+        value = super().clean()
+        if self.errors:
+            return value
+
+        # Campaign ID must be provided
+        campaign_id = value.get('campaign_id', None)
+        if not campaign_id:
+            raise forms.ValidationError('Invalid Campaign ID')
+
+        # Check if campaign_id exists
+        campaign = slc.get_campaign(campaign_id=value['campaign_id'])
+        if not campaign:
+            raise forms.ValidationError('Invalid Campaign ID')
+
+        # Check if user(email) is a supervisor of the campaign
+        user = slc.find_user(user_id=None, email=value['email'])
+        if not user:
+            raise forms.ValidationError('Invalid User')
+        if not slc.is_supervisor(campaign=campaign, user=user):
+            raise forms.ValidationError('Not a supervisor of this campaign')
+
+        # Check participant_id if provided
+        if value.get('participant_id', None):
+            participant_user = slc.find_user(user_id=value['participant_id'])
+            if not participant_user:
+                raise forms.ValidationError('Invalid Participant ID')
+            is_participant = slc.is_participant(
+                campaign=campaign,
+                user=participant_user,
+            )
+            if not is_participant:
+                raise forms.ValidationError(
+                    'Not a participant of this campaign')
+
+        # Validate data source if data_source_name is provided
+        if value.get('data_source_id', None):
+            data_source = slc.find_data_source(
+                data_source_id=value['data_source_id'],
+                name=None,
+            )
+            if not data_source:
+                raise forms.ValidationError('Invalid Data Source ID')
+
+        return value
+
+    def to_python(self):
+        '''Convert form data to python data'''
+        value = self.clean()
+
+        # get campaign
+        campaign = slc.get_campaign(campaign_id=value['campaign_id'])
+        assert campaign is not None
+
+        # get participant
+        participant: Optional[mdl.Participant] = None
+        if value.get('participant_id', None):
+            participant = slc.get_participant(
+                campaign=campaign,
+                user=slc.find_user(user_id=value['participant_id']),
+            )
+
+        # get data source
+        data_source: Optional[mdl.DataSource] = None
+        if value.get('data_source_id', None):
+            data_source = slc.find_data_source(
+                data_source_id=value['data_source_id'],
+                name=None,
+            )
+
+        # get plot date
+        plot_date: Optional[datetime] = None
+        if value.get('plot_date', None):
+            plot_date = value['plot_date']
+
+        # return campaign, participant, data source, and plot date
+        return campaign, participant, data_source, plot_date

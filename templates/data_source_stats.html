@@ -2,9 +2,10 @@
 {% load humanize fix_localhost timestamp_hreadable %}
 
 {% block content %}
-    
+
     <!-- Page title -->
-    <h3>[{{ campaign.name }}] {{participant.name}}'s stats </h3>
+    <h3>Participant's data sources</h3>
+    <hr class="mt-0 mb-5">
     
     <!-- Table of stats on data sources -->
     <table class="table text-center table-hover">
@@ -83,7 +84,7 @@
             // set campaign id for context menu buttons
             $('#btn_raw_data').click(() => window.location.href = e.target.attributes['data-href'].value);
             $("#btn_download_dataset").attr('href', `{% url 'download-data' %}?campaign_id={{campaign.id}}&participant_id={{participant.id}}&data_source_id=${dataSourceId}`);
-            $("#btn_monitor_dq").attr('href', `{% url 'easytrack-monitor' %}?campaign_id={{campaign.id}}&participant_id={{participant.id}}&data_source_id=${dataSourceId}`);
+            $("#btn_monitor_dq").attr('href', `{% url 'dq-monitor' %}?campaign_id={{campaign.id}}&participant_id={{participant.id}}&data_source_id=${dataSourceId}`);
             
             // block default Webbrowser right click menu
             return false;

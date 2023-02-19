@@ -4,8 +4,9 @@
 {% block content %}
 
     <!-- Page title -->
-    <h3>{{ title }}</h3>
- 
+    <h3>{% if campaign is not None %}Edit campaign{% else %}Create new campaign{% endif %}</h3>
+    <hr class="mt-0 mb-5">
+
     <!-- Campaign configurations (metadata and data sources) -->
     <div class="container">
         <div class="row mt-4">
@@ -374,7 +375,6 @@
                 // prepare data for ajax call
                 const requestURL = {% if campaign is None %}"{% url 'create-campaign-api' %}"{% else %}"{% url 'edit-campaign-api' %}"{% endif %};
                 const requestData = {
-                    csrfmiddlewaretoken: '{{ csrf_token }}',
                     email: '{{ request.user.email }}',
                     {% if campaign is not None %}campaign_id: {{ campaign.id }},{%endif%}
                     name: campaignName,
@@ -387,8 +387,11 @@
                 // save campaign with ajax call and redirect to campaigns page
                 $.ajax({
                     url: requestURL,
-                    type: "POST",
+                    type: {% if campaign is None %}"post"{% else %}"put"{% endif %},
                     data: requestData,
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+                    },
                     success: function(data) {
                         alert("Campaign saved successfully!");
                         window.location.href = '{% url "campaigns" %}';
