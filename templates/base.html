@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-{% load fix_localhost %}
+{% load fix_localhost static %}
 
 <html lang="en">
 <head>
@@ -18,7 +18,7 @@
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     
     <!-- Google API and Roboto font -->
-    <script src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/js/api.js"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
     <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
     
     <!-- Icon -->

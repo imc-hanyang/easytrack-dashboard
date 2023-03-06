@@ -18,12 +18,16 @@ services:
     container_name: et-dashboard
     network_mode: host
     environment:
-      STATIC_HOST: host.docker.internal
-      STATIC_PORT: ${STATIC_PORT}
+      SERVERNAMES: ${SERVERNAMES}
+      INTERNAL_IPS: ${INTERNAL_IPS}
       POSTGRES_HOST: host.docker.internal
       POSTGRES_PORT: ${POSTGRES_PORT}
       POSTGRES_DBNAME: ${POSTGRES_DBNAME}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      TEST_ACCOUNT_EMAIL: ${TEST_ACCOUNT_EMAIL}
+      TEST_ACCOUNT_NAME: ${TEST_ACCOUNT_NAME}
     ports:
       - '8000:8000'

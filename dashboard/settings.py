@@ -1,6 +1,7 @@
 from easytrack.utils import notnull
 from dotenv import load_dotenv
 from os import environ
+from os.path import join
 import os
 
 from easytrack import init
@@ -74,6 +75,11 @@ DATABASES = {
         'PASSWORD': POSTGRES_PASSWORD,
     }
 }
+
+STATICFILES_DIRS = [
+    join(BASE_DIR, "static"),
+    '/var/www/static/',
+]
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Seoul'
