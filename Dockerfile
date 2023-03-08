@@ -1,4 +1,4 @@
-FROM python:3.10-slim as base
+FROM python:3.9.16 as base
 
 # Housekeeping
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -10,11 +10,7 @@ FROM base AS runtime-env-deps
 # Configure libpq-dev linux dependency for psycopg2
 # (PostgreSQL development library for python database driver)
 RUN apt-get update
-RUN apt-get install -y --no-install-recommends gcc
 RUN apt-get install libpq-dev -y
-ENV LDFLAGS '-L/usr/local/opt/libpq/lib'
-ENV CPPFLAGS '-I/usr/local/opt/libpq/include'
-ENV PKG_CONFIG_PATH '/usr/local/opt/libpq/lib/pkgconfig'
 
 # Cook a python virtual environment
 RUN pip install --upgrade pip

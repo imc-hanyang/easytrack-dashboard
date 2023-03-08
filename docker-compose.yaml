@@ -5,22 +5,6 @@
 version: "3.8"
 
 services:
-  postgres:
-    container_name: easytrack-postgres
-
-    image: postgres:alpine
-
-    environment:
-      POSTGRES_DBNAME: ${POSTGRES_DBNAME}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-
-    volumes:
-      - "easytrack-postgres-vol:/var/lib/postgresql/data"
-
-    networks:
-      - "easytrack-network"
-
   django:
     container_name: easytrack-django
 
@@ -29,7 +13,8 @@ services:
       dockerfile: Dockerfile
 
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
     environment:
       # Django development server settings
@@ -65,6 +50,28 @@ services:
 
     networks:
       - "easytrack-network"
+
+  postgres:
+    container_name: easytrack-postgres
+
+    image: postgres:alpine
+
+    environment:
+      POSTGRES_DBNAME: ${POSTGRES_DBNAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - "easytrack-postgres-vol:/var/lib/postgresql/data"
+
+    networks:
+      - "easytrack-network"
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   pgadmin4:
     container_name: easytrack-pgadmin4
