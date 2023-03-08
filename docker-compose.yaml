@@ -1,16 +1,35 @@
-# Description: Web Dashboard (with REST APIs) for EasyTack platform
-# Author: Kobiljon Toshnazarov
-# Last updated: March 8, 2023
+# Docker Compose file for EasyTrack Dashboard project
+# Includes Django, Postgres, and PgAdmin4 containers
+# (create the external docker network before running this file)
 
 version: "3.8"
 
 services:
-  dashboard:
-    container_name: easytrack-dashboard
+  postgres:
+    container_name: easytrack-postgres
+
+    image: postgres:alpine
+
+    environment:
+      POSTGRES_DBNAME: ${POSTGRES_DBNAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - "easytrack-postgres-vol:/var/lib/postgresql/data"
+
+    networks:
+      - "easytrack-network"
+
+  django:
+    container_name: easytrack-django
 
     build:
       context: .
       dockerfile: Dockerfile
+
+    depends_on:
+      - postgres
 
     environment:
       # Django development server settings
@@ -46,6 +65,29 @@ services:
 
     networks:
       - "easytrack-network"
+
+  pgadmin4:
+    container_name: easytrack-pgadmin4
+
+    image: dpage/pgadmin4
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: easytrack@email.com
+      PGADMIN_DEFAULT_PASSWORD: easytrack
+
+    ports:
+      - "5050:80"
+
+    volumes:
+      - "easytrack-pgadmin4-vol:/var/lib/pgadmin"
+
+    networks:
+      - "easytrack-network"
+
+volumes:
+  easytrack-postgres-vol:
+  easytrack-pgadmin4-vol:
+
 
 networks:
   easytrack-network:
