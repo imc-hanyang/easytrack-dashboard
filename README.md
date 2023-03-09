@@ -1,11 +1,14 @@
-# How to launch Easytrack dashboard with Docker
+# Easytrack dashboard
+[![Docker Image Version (latest semver)](https://img.shields.io/docker/v/qobiljon/dashboard)](https://hub.docker.com/r/qobiljon/dashboard)
+[![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/qobiljon/dashboard)](https://hub.docker.com/r/qobiljon/dashboard)
+[![Docker Pulls](https://img.shields.io/docker/pulls/qobiljon/dashboard)](https://hub.docker.com/r/qobiljon/dashboard)
 
 ### Requirements
 - Python 3.10
 - Docker
 - Docker-compose
 
-### Launching web dashboard locally using Docker
+### Launch procedure (deployed locally with Docker)
 - Clone the repository
 - Go to the root of the repository
 - Create ```.env``` file with the following content:
