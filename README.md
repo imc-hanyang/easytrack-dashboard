@@ -32,7 +32,25 @@
       - ```TEST_ACCOUNT_EMAIL``` - Email of test account (app user)
       - ```TEST_ACCOUNT_NAME``` - Name of test account (app user)
 - Launch the dashboard (build and run containers)
-   - ```docker-compose up -d```
+   - Docker-compose
+      ```bash
+      docker-compose up -d
+      ```
+   - Docker
+      ```bash
+      set -a
+      source .env
+      set +a
+
+      docker build . -t qobiljon/et-dashboard:1.3
+      
+      docker run -d \
+         -p 8001:8000 \
+         --env-file .env \
+         --name et-dashboard \
+         --network easytrack-network \
+         qobiljon/et-dashboard:1.3
+      ```
 - Migrate database
    - Enter container bash shell
       - ```docker exec -it easytrack-django bash```
