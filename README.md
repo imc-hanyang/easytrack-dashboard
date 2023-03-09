@@ -5,7 +5,7 @@
 - Docker
 - Docker-compose
 
-### Launching the dashboard
+### Docker-compose
 - Clone the repository
 - Go to the root of the repository
 - Create ```.env``` file with the following content:
@@ -32,12 +32,29 @@
       - ```TEST_ACCOUNT_EMAIL``` - Email of test account (app user)
       - ```TEST_ACCOUNT_NAME``` - Name of test account (app user)
 - Launch the dashboard (build and run containers)
-   - Linux
+   - Docker-compose
       ```bash
       docker-compose up -d
       ```
-   - Apple M1
+   - Docker
       ```bash
-      DOCKER_DEFAULT_PLATFORM=linux/amd64 docker-compose up -d
+      set -a
+      source .env
+      set +a
+
+      docker build . -t qobiljon/et-dashboard:1.3
+      
+      docker run -d \
+         -p 8001:8000 \
+         --env-file .env \
+         --name et-dashboard \
+         --network easytrack-network \
+         qobiljon/et-dashboard:1.3
       ```
-      This is due to SCRAM authentication problem on recent versions of libpq-dev that is used by the psycopg2 database driver (a dependency of dashboard app).
+- Migrate database
+   - Enter container bash shell
+      - ```docker exec -it easytrack-django bash```
+   - Run migrations
+      - ```python manage.py migrate```
+   - Exit container bash shell
+      - ```exit 0```
