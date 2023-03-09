@@ -5,6 +5,7 @@ from os import getenv
 from os.path import join
 from os.path import dirname
 from os.path import abspath
+import socket
 
 # 3rd party
 from dotenv import load_dotenv
@@ -48,6 +49,11 @@ if DEBUG:
     if internal_ips:
         internal_ips = internal_ips.replace(' ', '').split(',')
         INTERNAL_IPS.extend(internal_ips)
+
+    # Docker host IP (for debug toolbar when using docker)
+    _, _, ips = socket.gethostbyname_ex(socket.gethostname())
+    for ip in ips:
+        INTERNAL_IPS.append('.'.join(ip.split('.')[:-1] + ['1']))
 else:
     # Deployed in production mode
 
