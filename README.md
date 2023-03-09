@@ -5,7 +5,7 @@
 - Docker
 - Docker-compose
 
-### Launching the dashboard
+### Docker-compose
 - Clone the repository
 - Go to the root of the repository
 - Create ```.env``` file with the following content:
@@ -32,12 +32,11 @@
       - ```TEST_ACCOUNT_EMAIL``` - Email of test account (app user)
       - ```TEST_ACCOUNT_NAME``` - Name of test account (app user)
 - Launch the dashboard (build and run containers)
-   - Linux
-      ```bash
-      docker-compose up -d
-      ```
-   - Apple M1
-      ```bash
-      DOCKER_DEFAULT_PLATFORM=linux/amd64 docker-compose up -d
-      ```
-      This is due to SCRAM authentication problem on recent versions of libpq-dev that is used by the psycopg2 database driver (a dependency of dashboard app).
+   - ```docker-compose up -d```
+- Migrate database
+   - Enter container bash shell
+      - ```docker exec -it easytrack-django bash```
+   - Run migrations
+      - ```python manage.py migrate```
+   - Exit container bash shell
+      - ```exit 0```
