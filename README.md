@@ -5,7 +5,7 @@
 - Docker
 - Docker-compose
 
-### Docker-compose
+### Launching web dashboard locally using Docker
 - Clone the repository
 - Go to the root of the repository
 - Create ```.env``` file with the following content:
