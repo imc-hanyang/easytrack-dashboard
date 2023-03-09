@@ -12,7 +12,6 @@ import pandas as pd
 # django
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
 from django.contrib.auth import login, logout
 
 # django rest framework
@@ -56,6 +55,7 @@ class LoginGoogle(generics.GenericAPIView):
             return validated
 
     class OutputSerializer(serializers.Serializer):
+        '''Output serializer for LoginGoogle.'''
         session_key = serializers.CharField()
 
     http_method_names = ['post']
@@ -545,7 +545,7 @@ class EditCampaign(generics.UpdateAPIView):
             # check user is researcher/supervisor
             if not slc.is_supervisor(campaign=campaign, user=user):
                 raise ValidationError(
-                    f'User {validated["email"]} is not a researcher/supervisor for campaign {campaign.name}'
+                    f'User {validated["email"]} is not a supervisor of {campaign.name}'
                 )
 
             # remove timezone info from datetimes
@@ -669,6 +669,7 @@ class DeleteCampaign(generics.DestroyAPIView):
 
 
 class UploadCSV(generics.CreateAPIView):
+    '''Upload CSV view.'''
 
     class InputSerializer(serializers.Serializer):
         '''Input serializer for UploadCSV view.'''
@@ -723,7 +724,7 @@ class UploadCSV(generics.CreateAPIView):
                 'integer': int,
                 'float': float,
             }
-            dtypes = dict()
+            dtypes = {}
             for column in columns:
                 dtypes[column.name] = columns_py_types[column.column_type]
 
@@ -735,12 +736,12 @@ class UploadCSV(generics.CreateAPIView):
 
                 # check columns using pandas
                 try:
-                    df = pd.read_csv(file, dtype=dtypes)
-                except Exception as e:
-                    raise ValidationError(e) from e
+                    dataframe = pd.read_csv(file, dtype=dtypes)
+                except Exception as exc:
+                    raise ValidationError(exc) from exc
 
                 # participant id column is required
-                if 'participant_id' not in df.columns:
+                if 'participant_id' not in dataframe.columns:
                     raise ValidationError(
                         f'Participant id column is missing in {file.name}')
 

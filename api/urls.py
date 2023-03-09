@@ -1,6 +1,9 @@
 ''' API URLS '''
 
+# 3rd party
 from django.urls import path
+
+# local
 from api import views
 
 urlpatterns = [

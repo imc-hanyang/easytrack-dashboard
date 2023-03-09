@@ -33,7 +33,7 @@ ENV PATH="$HOME/.venv/bin:$PATH"
 # Copy app files : django apps, static files, and launch script
 COPY dashboard dashboard
 COPY api api
-COPY static static
+COPY [static] static
 COPY manage.py manage.py
 
 # Expose port (app runs this port)

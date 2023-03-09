@@ -1,11 +1,12 @@
 '''Utility functions for the dashboard app.'''
 
+# 3rd party
 from easytrack import models as mdl
 from django.core.files.uploadedfile import TemporaryUploadedFile
 import pandas as pd
 
 
-def file_is_valid(data_source: mdl.DataSource, fp: TemporaryUploadedFile):
+def file_is_valid(data_source: mdl.DataSource, file: TemporaryUploadedFile):
     """
     Checks if the columns in the file are the same as the columns in the data source
     :param dataSource: The data source
@@ -25,18 +26,18 @@ def file_is_valid(data_source: mdl.DataSource, fp: TemporaryUploadedFile):
         columns.append((item['name'].lower(), type_map[item['type']]))
 
     # load fileContent string into a pandas dataframe (load string, not file)
-    df = pd.read_csv(fp)
+    dataframe = pd.read_csv(file)
 
     # check validity
     is_valid = True
-    column_comparisons = list(zip(columns, df.columns))
+    column_comparisons = list(zip(columns, dataframe.columns))
     for req_col, df_col in column_comparisons:
         expected_col_name, acceptable_col_types = req_col
 
         print('expected', f'{expected_col_name}({acceptable_col_types})',
-              'actual', f'{df_col}({df.dtypes[df_col]})')
+              'actual', f'{df_col}({dataframe.dtypes[df_col]})')
 
-        if df_col != expected_col_name or df.dtypes[
+        if df_col != expected_col_name or dataframe.dtypes[
                 df_col] not in acceptable_col_types:
             is_valid = False
             break

@@ -1,3 +1,5 @@
+''' Django settings for dashboard project. '''
+
 # stdlib
 from os import getenv
 from os.path import join

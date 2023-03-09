@@ -1,5 +1,9 @@
+''' Context processors for the dashboard app. '''
+
+# stdlib
 from os import getenv
 
+# 3rd party
 from easytrack.utils import notnull
 
 

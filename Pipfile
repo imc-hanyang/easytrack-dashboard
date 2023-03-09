@@ -26,6 +26,7 @@ social-auth-core = "*"
 
 [dev-packages]
 djlint = "*"
+pylint = "*"
 
 [requires]
 python_version = "3.9"
