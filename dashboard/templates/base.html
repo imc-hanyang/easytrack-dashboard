@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-{% load fix_localhost %}
+{% load fix_localhost static %}
 
 <html lang="en">
 <head>
@@ -18,11 +18,10 @@
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     
     <!-- Google API and Roboto font -->
-    <script src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/js/api.js"></script>
-    <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+    <script src="https://apis.google.com/js/api.js"></script>
     
     <!-- Icon -->
-    <link rel="shortcut icon" href="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/others//favicon.ico">
+    <link rel="shortcut icon" href="{% static 'favicon.ico' %}">
     
     <!-- Metadata -->
     <meta name="google-site-verification" content="LlQenU10qxF_Zc7Mr56TrTZjwkgyaj3OtFfJbwKhIs4"/>

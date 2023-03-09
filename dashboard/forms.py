@@ -335,8 +335,11 @@ class DataRecordsForm(forms.Form):
         data_records: List[Dict[str, Any]] = []
         tmp = data_table.select_next_k(from_ts=from_timestamp, limit=500)
         for i, record in enumerate(tmp):
-            ts = utils.datetime_to_str(timestamp=record.ts, js_format=False)
-            ts = ts[:ts.rindex(':')]
+            timestamp = utils.datetime_to_str(
+                timestamp=record.ts,
+                js_format=False,
+            )
+            timestamp = timestamp[:timestamp.rindex(':')]
             value = json.dumps(record.val)
 
             # 5KB (e.g., binary files)
@@ -345,7 +348,7 @@ class DataRecordsForm(forms.Form):
 
             data_records.append({
                 'row': i + 1,
-                'timestamp': ts,
+                'timestamp': timestamp,
                 'value': value,
             })
             from_timestamp = record.ts
@@ -355,6 +358,8 @@ class DataRecordsForm(forms.Form):
 
 
 class DataQualityGraphForm(forms.Form):
+    '''Form for participant data quality graph request/view validation'''
+
     email = forms.EmailField(required=True)
     campaign_id = forms.IntegerField(required=True)
     participant_id = forms.IntegerField(required=False)

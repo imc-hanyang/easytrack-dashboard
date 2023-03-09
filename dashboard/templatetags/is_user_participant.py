@@ -1,4 +1,6 @@
 '''Check if user is a participant of a campaign'''
+
+# 3rd party
 from django import template
 from easytrack import selectors as slc
 from easytrack import models as mdl

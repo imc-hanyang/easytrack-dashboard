@@ -1,7 +1,10 @@
+''' Dashboard URLS '''
+
+# 3rd party
 from django.urls import path, include
-from django.contrib import admin
+
+# local
 from dashboard import views
-from django.urls import include
 
 urlpatterns = [
     # google oAuth and site veriification

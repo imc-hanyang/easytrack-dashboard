@@ -9,7 +9,6 @@
 
     {% if data_records|length == 0 %}
         <h4>[ NO DATA / EMPTY ]</h2>
-        <img src="http://{{ STATIC_HOST|fix_localhost }}:{{ STATIC_PORT }}/images/others/failure.png" alt="Under construction">
     {% else %}
         <form id="view_data_submit_form" action="{% url 'data-records' %}" method="get" onsubmit="onFormSubmit()">
             <input type="number" name="campaign_id" value="{{ request.GET.campaign_id }}" hidden>

@@ -6,11 +6,13 @@ verify_ssl = true
 [packages]
 django = "*"
 djangorestframework = "*"
+google-auth = "*"
+google-auth-httplib2 = "*"
 gunicorn = "*"
 pandas = "*"
 peewee = "*"
 plotly = "*"
-psycopg2-binary = "*"
+psycopg2 = "*"
 python-dateutil = "*"
 python-dotenv = "*"
 python-easytrack = "*"
@@ -21,11 +23,10 @@ requests-oauthlib = "*"
 social = "*"
 social-auth-app-django = "*"
 social-auth-core = "*"
-google-auth = "*"
-google-auth-httplib2 = "*"
 
 [dev-packages]
 djlint = "*"
+pylint = "*"
 
 [requires]
-python_version = "3.10"
+python_version = "3.9"

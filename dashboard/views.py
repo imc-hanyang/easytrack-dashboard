@@ -1,39 +1,29 @@
 '''Views for the dashboard app.'''
 
-from typing import List, Tuple, Dict, Optional
+# stdlib
+from typing import Dict, Optional
 from datetime import timedelta
 from datetime import datetime
-from datetime import date
-import plotly.graph_objects as go
 import collections
-import mimetypes
-import zipfile
-import plotly
-import os
 
-# libs
-from wsgiref.util import FileWrapper
-
+# 3rd party
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
-from django.http import StreamingHttpResponse
 from django.shortcuts import render, redirect
-from django.http import HttpResponse
-
-# easytrack
 from easytrack import selectors as slc
 from easytrack import models as mdl
-from easytrack import services as svc
 from easytrack import wrappers
 from easytrack import utils
+import plotly.graph_objects as go
+import plotly
 
-# app
-from dashboard import utils as dutils
+# local
 from dashboard import forms
 
 
 def handle_google_verification(request):
+    '''Renders google-site.html (for google site verification)'''
     return render(request=request, template_name='google-site.html')
 
 
@@ -196,7 +186,7 @@ def campaign_editor(request):
         campaign = form.to_python()
 
     # mark selected data sources
-    selected_data_sources: Dict[str, bool] = dict()
+    selected_data_sources: Dict[str, bool] = {}
     if campaign is not None:
         for data_source in slc.get_campaign_data_sources(campaign=campaign):
             selected_data_sources[data_source.name] = True
@@ -278,7 +268,7 @@ def manage_researchers(request):
     campaign = form.to_python()
 
     # get supervisors / researchers
-    supervisors = [x for x in slc.get_campaign_supervisors(campaign=campaign)]
+    supervisors = list(slc.get_campaign_supervisors(campaign=campaign))
 
     return render(
         request=request,
@@ -335,7 +325,7 @@ def dq_monitor(request):
 
     # compute hourly stats
     hourly_stats = collections.defaultdict(int)
-    WINDOW_SIZE = timedelta(hours=1)  # 1-hour sliding window
+    window_size = timedelta(hours=1)  # 1-hour sliding window
     for participant in participants:
         for data_source in data_sources:
             # get data table
@@ -343,12 +333,14 @@ def dq_monitor(request):
                                             data_source=data_source)
 
             # slide through the time range and compute hourly stats
-            ts = from_ts
-            while ts < till_ts:
-                amount = data_table.select_count(from_ts=ts,
-                                                 till_ts=ts + WINDOW_SIZE)
-                hourly_stats[ts.hour] += amount
-                ts += WINDOW_SIZE
+            timestamp = from_ts
+            while timestamp < till_ts:
+                amount = data_table.select_count(
+                    from_ts=timestamp,
+                    till_ts=timestamp + window_size,
+                )
+                hourly_stats[timestamp.hour] += amount
+                timestamp += window_size
 
     # prepare hourly stats plot
     x_vals, y_vals, max_amount = [], [], 10
